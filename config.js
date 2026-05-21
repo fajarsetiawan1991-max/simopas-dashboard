@@ -1,0 +1,4 @@
+window.SIMOPAS_CONFIG = {
+  SUPABASE_URL: 'https://nlzxxxcldxrnhkuozkyz.supabase.co/rest/v1/',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5senh4eGNsZHhybmhrdW96a3l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNDY3NzYsImV4cCI6MjA5NDkyMjc3Nn0.xiRAXYBAoZzkfh9yecuv89kDyWeA7w2ZU65uC6NkHHI',
+};
