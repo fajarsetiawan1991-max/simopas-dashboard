@@ -935,6 +935,7 @@
   }
   .toast.warning { border-left-color: var(--warning); }
   .toast.danger { border-left-color: var(--danger); }
+  .toast.info { border-left-color: var(--info); }
   @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
   .toast-icon {
@@ -948,6 +949,7 @@
   }
   .toast.warning .toast-icon { background: rgba(255, 159, 67, 0.15); color: var(--warning); }
   .toast.danger .toast-icon { background: rgba(255, 85, 102, 0.15); color: var(--danger); }
+  .toast.info .toast-icon { background: rgba(111, 168, 255, 0.15); color: var(--info); }
 
   .toast-content { flex: 1; min-width: 0; }
   .toast-content strong { display: block; font-size: 13px; }
@@ -1418,8 +1420,13 @@
             <input type="text" id="f-hp" placeholder="081234560001">
           </div>
           <div class="form-field">
-            <label>Telegram Chat ID</label>
-            <input type="text" id="f-tg" placeholder="123456789">
+            <label>Username Telegram (opsional)</label>
+            <input type="text" id="f-tg" placeholder="@username">
+          </div>
+          <div class="form-field span-2">
+            <label>Telegram Chat ID <span style="color:var(--info);font-size:10px;">(untuk notifikasi otomatis)</span></label>
+            <input type="text" id="f-tg-chat-id" placeholder="Contoh: 123456789">
+            <small style="font-size:10px;color:var(--text-mute);margin-top:4px;">PJ harus chat bot @SimopasBot dulu, lalu copy Chat ID dari pesan bot. <a href="start-bot.html" target="_blank" style="color:var(--accent);">Lihat panduan</a></small>
           </div>
         </div>
       </div>
@@ -1524,6 +1531,7 @@ function dbToUi(row) {
     pj: row.pj,
     hp: row.hp,
     tg: row.tg,
+    telegramChatId: row.telegram_chat_id,
     notif: { tg: !!row.notif_tg, wa: !!row.notif_wa },
     lastSent: row.last_sent,
   };
@@ -1545,6 +1553,7 @@ function uiToDb(v) {
     pj: v.pj,
     hp: v.hp,
     tg: v.tg || null,
+    telegram_chat_id: v.telegramChatId || null,
     notif_tg: !!(v.notif && v.notif.tg),
     notif_wa: !!(v.notif && v.notif.wa),
     last_sent: v.lastSent || null,
@@ -1637,7 +1646,8 @@ function toast(title, msg, type = 'success') {
   const icons = {
     success: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>',
     warning: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-    danger: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+    danger: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    info: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
   };
   const t = document.createElement('div');
   t.className = `toast ${type}`;
@@ -1845,7 +1855,7 @@ function toggleSidebar() {
 function openAddModal() {
   editingId = null;
   document.getElementById('modalTitle').innerHTML = 'Tambah <em>Kendaraan</em>';
-  ['f-type','f-plate','f-stnk','f-no-pajak','f-pj','f-hp','f-tg','f-km'].forEach(id => document.getElementById(id).value = '');
+  ['f-type','f-plate','f-stnk','f-no-pajak','f-pj','f-hp','f-tg','f-tg-chat-id','f-km'].forEach(id => document.getElementById(id).value = '');
   ['f-stnk-date','f-pajak-date','f-service-date'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-jenis').value = 'Motor';
   document.getElementById('f-asal').value = 'ditjenim';
@@ -1872,7 +1882,8 @@ function openEditModal(id) {
   document.getElementById('f-km').value = v.km;
   document.getElementById('f-pj').value = v.pj;
   document.getElementById('f-hp').value = v.hp;
-  document.getElementById('f-tg').value = v.tg;
+  document.getElementById('f-tg').value = v.tg || '';
+  document.getElementById('f-tg-chat-id').value = v.telegramChatId || '';
   document.getElementById('f-notif-tg').checked = v.notif.tg;
   document.getElementById('f-notif-wa').checked = v.notif.wa;
   document.querySelectorAll('.toggle-card')[0].classList.toggle('checked', v.notif.tg);
@@ -1918,6 +1929,7 @@ async function saveVehicle() {
     pj: pj,
     hp: hp,
     tg: document.getElementById('f-tg').value.trim(),
+    telegramChatId: document.getElementById('f-tg-chat-id').value.trim(),
     notif: {
       tg: document.getElementById('f-notif-tg').checked,
       wa: document.getElementById('f-notif-wa').checked
@@ -1973,29 +1985,55 @@ async function deleteVehicle(id) {
 async function sendNotif(id) {
   const v = vehicles.find(x => x.id === id);
   if (!v) return;
-  const channels = [];
-  if (v.notif.tg) channels.push('Telegram');
-  if (v.notif.wa) channels.push('WhatsApp');
-  if (channels.length === 0) {
-    toast('Notifikasi tidak aktif', 'Aktifkan notifikasi terlebih dahulu', 'warning');
+
+  if (!v.notif.tg) {
+    toast('Notifikasi Telegram tidak aktif', 'Aktifkan dulu di edit kendaraan', 'warning');
     return;
   }
 
-  const todayStr = today.toISOString().split('T')[0];
+  if (!v.telegramChatId) {
+    toast('Chat ID belum diisi', `${v.pj} belum chat bot. Lihat panduan di menu start-bot.html`, 'warning');
+    return;
+  }
+
+  // Tanya tipe yang mau dikirim
+  const tipe = prompt(`Kirim pengingat apa untuk ${v.plate}?\n\nKetik:\n• pajak — untuk pajak tahunan\n• stnk — untuk STNK 5 tahun\n• service — untuk service berkala`, 'pajak');
+  if (!tipe) return;
+  if (!['pajak', 'stnk', 'service'].includes(tipe.toLowerCase())) {
+    toast('Tipe salah', 'Hanya pajak, stnk, atau service', 'warning');
+    return;
+  }
+
+  toast('Mengirim pengingat...', `Via Telegram ke ${v.pj}`, 'info');
 
   try {
-    const { error } = await supabaseClient
-      .from('kendaraan')
-      .update({ last_sent: todayStr })
-      .eq('id', id);
-    if (error) throw error;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+      toast('Sesi habis', 'Silakan login ulang', 'danger');
+      return;
+    }
 
-    toast('Pengingat terkirim', `Via ${channels.join(' & ')} ke ${v.pj}`, 'success');
-    await loadVehicles();
-    if (detailId === id) openDetail(id);
+    const res = await fetch('/api/test-send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ kendaraan_id: id, tipe: tipe.toLowerCase() }),
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      toast('Pengingat terkirim', `Via Telegram ke ${v.pj}`, 'success');
+      await loadVehicles();
+      if (detailId === id) openDetail(id);
+    } else {
+      toast('Gagal mengirim', result.error || 'Error tidak diketahui', 'danger');
+    }
   } catch (err) {
-    console.error('Notif error:', err);
-    toast('Gagal mengirim', err.message || 'Coba lagi', 'danger');
+    console.error('Send notif error:', err);
+    toast('Gagal mengirim', err.message || 'Periksa koneksi', 'danger');
   }
 }
 

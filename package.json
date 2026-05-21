@@ -1,0 +1,9 @@
+{
+  "name": "simopas-dashboard",
+  "version": "3.0.0",
+  "description": "Sistem Monitoring Pajak & Service Kendaraan Dinas",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

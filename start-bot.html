@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan Daftar Bot — SIMOPAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg-elev: #111726;
+    --bg-card: #161e30;
+    --border: #232b40;
+    --text: #e8ecf5;
+    --text-dim: #8893a8;
+    --text-mute: #5a647a;
+    --accent: #ffd93d;
+    --info: #6fa8ff;
+    --success: #2ee59d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  body {
+    background-image:
+      radial-gradient(ellipse 800px 600px at 0% 0%, rgba(255, 217, 61, 0.05), transparent 50%),
+      radial-gradient(ellipse 600px 400px at 100% 100%, rgba(76, 201, 240, 0.04), transparent 50%);
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .brand {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .brand-logo {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--accent), #ff9f43);
+    border-radius: 14px;
+    display: inline-grid;
+    place-items: center;
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    color: #0a0e1a;
+    font-weight: 600;
+    transform: rotate(-4deg);
+    margin-bottom: 12px;
+  }
+  .brand-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    line-height: 1;
+  }
+  .brand-name em { color: var(--accent); font-style: italic; }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  h1 em { color: var(--accent); font-style: italic; }
+
+  .lead {
+    color: var(--text-dim);
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  .step {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 14px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 36px; height: 36px;
+    background: var(--accent);
+    color: #0a0e1a;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 16px;
+  }
+
+  .step-content { flex: 1; }
+  .step-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .step-desc { color: var(--text-dim); font-size: 14px; }
+  .step-desc code {
+    background: rgba(255, 217, 61, 0.1);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  .btn-bot {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #4cc9f0;
+    color: #0a0e1a;
+    padding: 12px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    margin-top: 8px;
+    transition: transform 0.15s ease;
+  }
+  .btn-bot:hover { transform: translateY(-1px); }
+
+  .important-box {
+    background: rgba(46, 229, 157, 0.08);
+    border: 1px solid rgba(46, 229, 157, 0.3);
+    border-left: 4px solid var(--success);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 24px 0;
+  }
+  .important-box strong { color: var(--success); }
+
+  .screenshot-mock {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 12px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+  .screenshot-mock .chat-id {
+    background: rgba(255, 217, 61, 0.15);
+    border: 1px dashed var(--accent);
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-mute);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 28px; }
+    .step { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-logo">S</div>
+    <div class="brand-name">SIMO<em>PAS</em></div>
+  </div>
+
+  <h1>Panduan <em>Daftar Bot</em></h1>
+  <p class="lead">Untuk menerima pengingat otomatis pajak, STNK, dan service kendaraan dinas via Telegram. Ikuti 4 langkah berikut, hanya 2 menit.</p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <div class="step-title">Buka Bot SIMOPAS di Telegram</div>
+      <div class="step-desc">
+        Klik tombol di bawah ini (HARUS sudah install Telegram di HP). Bot akan otomatis terbuka di aplikasi Telegram Anda.
+        <br><br>
+        <a href="https://t.me/GANTI_USERNAME_BOT_KAMU" class="btn-bot" target="_blank">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+          Buka @SimopasBot
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <div class="step-title">Klik tombol "START" di bot</div>
+      <div class="step-desc">
+        Di chat dengan bot, akan muncul tombol biru besar bertuliskan <code>START</code> atau <code>MULAI</code> di bagian bawah. Klik tombol tersebut.
+        <br><br>
+        Atau ketik manual: <code>/start</code> lalu kirim.
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <div class="step-title">Copy Chat ID dari pesan bot</div>
+      <div class="step-desc">
+        Bot akan otomatis balas dengan pesan yang berisi Chat ID Anda. Contoh tampilan:
+      </div>
+      <div class="screenshot-mock">
+        👋 Selamat datang di SIMOPAS Bot!<br>
+        📋 Chat ID Anda:<br>
+        <span class="chat-id">123456789</span><br>
+        📝 Cara daftar:<br>
+        1. Copy Chat ID di atas<br>
+        2. Kirim Chat ID tersebut ke admin SIMOPAS<br>
+        3. Admin akan input ke sistem<br>
+        4. Anda akan otomatis dapat pengingat
+      </div>
+      <div class="step-desc">
+        <strong style="color:var(--accent);">Tap angka Chat ID</strong> untuk auto-copy ke clipboard.
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <div class="step-title">Kirim Chat ID ke Admin SIMOPAS</div>
+      <div class="step-desc">
+        Paste Chat ID yang sudah di-copy, kirim via WhatsApp atau Telegram ke admin SIMOPAS Kanim. Admin akan input Chat ID ini ke sistem, dan Anda otomatis akan dapat pengingat pajak/STNK/service kendaraan.
+      </div>
+    </div>
+  </div>
+
+  <div class="important-box">
+    <strong>✓ Setelah Chat ID terdaftar di sistem:</strong>
+    <p style="margin-top:8px;color:var(--text-dim);">
+      Anda akan otomatis menerima pengingat 30 hari, 14 hari, 7 hari, 1 hari sebelum jatuh tempo, dan pada hari-H. Tidak perlu install aplikasi apapun selain Telegram.
+    </p>
+  </div>
+
+  <h2 style="font-family:'Instrument Serif',serif;font-size:24px;margin-top:32px;margin-bottom:12px;">Yang akan Anda terima</h2>
+  <p style="color:var(--text-dim);margin-bottom:16px;font-size:14px;">Setiap kendaraan yang Anda pegang akan dimonitor. Bot akan kirim pesan seperti ini:</p>
+
+  <div class="screenshot-mock" style="font-family:'Manrope',sans-serif;font-size:13px;color:var(--text);">
+    🚨 <strong>PENGINGAT PAJAK TAHUNAN</strong><br><br>
+    Halo, <strong>Budi Santoso</strong> 👋<br><br>
+    💰 PAJAK TAHUNAN kendaraan dinas Anda akan jatuh tempo:<br><br>
+    📋 <strong>Detail Kendaraan:</strong><br>
+    • No. Polisi: <code style="color:var(--accent);">KT 1234 AB</code><br>
+    • Type: Toyota Innova Reborn<br>
+    • Asal: Ditjenim<br><br>
+    📅 <strong>Jatuh Tempo:</strong><br>
+    15 Juni 2026 <strong>(7 HARI LAGI)</strong><br><br>
+    ⚠️ Mohon segera proses perpanjangan pajak.<br><br>
+    <em>— SIMOPAS Kanim</em>
+  </div>
+
+  <div class="footer">
+    SIMOPAS v3.0 — Sistem Monitoring Kendaraan Dinas<br>
+    Butuh bantuan? Hubungi admin SIMOPAS Kanim.
+  </div>
+</div>
+
+</body>
+</html>
