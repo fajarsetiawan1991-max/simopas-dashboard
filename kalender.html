@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalender — SIMOPAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+.cal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.cal-nav { display: flex; gap: 8px; align-items: center; }
+.cal-title { font-family: 'Instrument Serif', serif; font-size: 24px; min-width: 200px; text-align: center; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid var(--border); }
+.cal-day-name { padding: 12px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid var(--border); background: var(--bg-elev); }
+.cal-cell { min-height: 90px; padding: 8px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); position: relative; cursor: pointer; transition: background 0.15s; }
+.cal-cell:hover { background: var(--bg-hover); }
+.cal-cell.empty { background: rgba(0,0,0,0.15); cursor: default; }
+.cal-cell:nth-child(7n) { border-right: none; }
+.cal-cell.today { background: rgba(255, 217, 61, 0.06); }
+.cal-cell.today .cal-date { color: var(--accent); font-weight: 700; }
+.cal-date { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.cal-events { display: flex; flex-direction: column; gap: 2px; }
+.cal-event { font-size: 9px; padding: 2px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-event.pajak { background: rgba(255, 159, 67, 0.15); color: var(--warning); }
+.cal-event.stnk { background: rgba(111, 168, 255, 0.15); color: var(--info); }
+.cal-event.service { background: rgba(46, 229, 157, 0.15); color: var(--success); }
+.legend { display: flex; gap: 16px; padding: 12px 20px; font-size: 11px; color: var(--text-dim); flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+.legend-dot.pajak { background: var(--warning); } .legend-dot.stnk { background: var(--info); } .legend-dot.service { background: var(--success); }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 560px; max-height: 80vh; overflow-y: auto; }
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.modal-header h2 { font-family: 'Instrument Serif', serif; font-size: 24px; }
+.modal-close { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; width: 32px; height: 32px; border-radius: 8px; }
+.modal-body { padding: 20px 24px; }
+.event-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; display: flex; gap: 12px; align-items: center; }
+.event-icon { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; }
+.event-icon.pajak { background: rgba(255, 159, 67, 0.15); color: var(--warning); }
+.event-icon.stnk { background: rgba(111, 168, 255, 0.15); color: var(--info); }
+.event-icon.service { background: rgba(46, 229, 157, 0.15); color: var(--success); }
+.event-info { flex: 1; }
+.event-title { font-weight: 600; font-size: 13px; }
+.event-meta { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+
+@media (max-width: 768px) {
+  .cal-cell { min-height: 60px; padding: 4px; }
+  .cal-date { font-size: 11px; }
+  .cal-event { font-size: 8px; padding: 1px 3px; }
+  .cal-title { font-size: 18px; min-width: 150px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="mobile-menu-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="page-title">
+        <h1>Kalender <em>Jatuh Tempo</em></h1>
+        <p>Lihat semua tanggal jatuh tempo dalam satu tampilan kalender</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" onclick="goToday()">Hari Ini</button>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div class="cal-header">
+        <h2 class="cal-title" id="calTitle">Mei 2026</h2>
+        <div class="cal-nav">
+          <button class="btn" onclick="prevMonth()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="btn" onclick="nextMonth()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot pajak"></div>Pajak Tahunan</div>
+        <div class="legend-item"><div class="legend-dot stnk"></div>STNK 5 Tahun</div>
+        <div class="legend-item"><div class="legend-dot service"></div>Service Berkala</div>
+      </div>
+
+      <div class="cal-grid">
+        <div class="cal-day-name">Min</div>
+        <div class="cal-day-name">Sen</div>
+        <div class="cal-day-name">Sel</div>
+        <div class="cal-day-name">Rab</div>
+        <div class="cal-day-name">Kam</div>
+        <div class="cal-day-name">Jum</div>
+        <div class="cal-day-name">Sab</div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Detail</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+let vehicles = [];
+let currentDate = new Date();
+const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+async function loadData() {
+  const { data, error } = await supabaseClient.from('kendaraan').select('*');
+  if (error) { toast('Gagal memuat', error.message, 'danger'); return; }
+  vehicles = (data || []).map(dbToUi);
+  render();
+}
+
+function getEventsForDate(date) {
+  const dateStr = date.toISOString().split('T')[0];
+  const events = [];
+  vehicles.forEach(v => {
+    if (v.pajakDate === dateStr) events.push({ tipe: 'pajak', kendaraan: v });
+    if (v.stnkDate === dateStr) events.push({ tipe: 'stnk', kendaraan: v });
+    if (v.serviceDate === dateStr) events.push({ tipe: 'service', kendaraan: v });
+  });
+  return events;
+}
+
+function render() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  document.getElementById('calTitle').textContent = `${MONTHS[month]} ${year}`;
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDay = firstDay.getDay();
+  const daysInMonth = lastDay.getDate();
+  const todayStr = today.toISOString().split('T')[0];
+
+  let html = '';
+  for (let i = 0; i < startDay; i++) html += '<div class="cal-cell empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const dateStr = date.toISOString().split('T')[0];
+    const events = getEventsForDate(date);
+    const isToday = dateStr === todayStr;
+
+    html += `<div class="cal-cell ${isToday ? 'today' : ''}" onclick="openDateModal('${dateStr}')">
+      <div class="cal-date">${d}</div>
+      <div class="cal-events">
+        ${events.slice(0, 3).map(e => `<div class="cal-event ${e.tipe}">${e.kendaraan.plate}</div>`).join('')}
+        ${events.length > 3 ? `<div class="cal-event" style="background:var(--border);color:var(--text-dim);">+${events.length - 3} lagi</div>` : ''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+}
+
+function prevMonth() { currentDate.setMonth(currentDate.getMonth() - 1); render(); }
+function nextMonth() { currentDate.setMonth(currentDate.getMonth() + 1); render(); }
+function goToday() { currentDate = new Date(); render(); }
+
+function openDateModal(dateStr) {
+  const date = new Date(dateStr);
+  const events = getEventsForDate(date);
+  document.getElementById('modalTitle').textContent = formatDateLong(dateStr);
+
+  if (events.length === 0) {
+    document.getElementById('modalBody').innerHTML = '<div class="empty-state" style="padding:20px 0;"><p>Tidak ada jatuh tempo di tanggal ini</p></div>';
+  } else {
+    const TIPE_LABEL = { pajak: 'Pajak Tahunan', stnk: 'STNK (5 Tahun)', service: 'Service Berkala' };
+    const TIPE_ICON = {
+      pajak: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>',
+      stnk: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      service: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>'
+    };
+    document.getElementById('modalBody').innerHTML = events.map(e => `
+      <div class="event-item">
+        <div class="event-icon ${e.tipe}">${TIPE_ICON[e.tipe]}</div>
+        <div class="event-info">
+          <div class="event-title">${TIPE_LABEL[e.tipe]}: ${e.kendaraan.type}</div>
+          <div class="event-meta">${e.kendaraan.plate} • ${e.kendaraan.pj} • ${ORIGIN_LABELS[e.kendaraan.asal]}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+document.getElementById('modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
+
+(async function init() {
+  const user = await simopasInit('kalender');
+  if (user) await loadData();
+})();
+</script>
+
+</body>
+</html>

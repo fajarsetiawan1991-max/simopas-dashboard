@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pengaturan — SIMOPAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+.settings-grid { display: grid; grid-template-columns: 240px 1fr; gap: 24px; }
+@media (max-width: 800px) { .settings-grid { grid-template-columns: 1fr; } }
+
+.settings-nav { display: flex; flex-direction: column; gap: 4px; }
+.settings-nav-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; color: var(--text-dim); font-size: 13px; font-weight: 500; transition: all 0.15s; display: flex; align-items: center; gap: 10px; }
+.settings-nav-item:hover { background: var(--bg-card); color: var(--text); }
+.settings-nav-item.active { background: var(--bg-card); color: var(--text); }
+.settings-nav-item svg { width: 16px; height: 16px; }
+
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+.admin-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.admin-item { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+.admin-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-2), var(--purple)); display: grid; place-items: center; font-weight: 700; font-size: 12px; color: white; flex-shrink: 0; }
+.admin-info { flex: 1; min-width: 0; }
+.admin-name { font-weight: 600; font-size: 13px; }
+.admin-chat-id { font-size: 11px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; }
+
+.form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+.form-row input { flex: 1; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
+.form-row input:focus { border-color: var(--accent); }
+
+.info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-dim); font-size: 13px; }
+.info-value { font-weight: 600; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+
+.code-snippet { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--success); white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="mobile-menu-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="page-title">
+        <h1><em>Pengaturan</em> Sistem</h1>
+        <p>Kelola admin, jadwal pengingat, dan konfigurasi SIMOPAS</p>
+      </div>
+    </div>
+
+    <div class="settings-grid">
+      <div class="settings-nav">
+        <div class="settings-nav-item active" data-tab="admin" onclick="switchTab('admin')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
+          Admin Telegram
+        </div>
+        <div class="settings-nav-item" data-tab="schedule" onclick="switchTab('schedule')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Jadwal Pengingat
+        </div>
+        <div class="settings-nav-item" data-tab="system" onclick="switchTab('system')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+          Info Sistem
+        </div>
+      </div>
+
+      <div>
+        <!-- TAB: ADMIN -->
+        <div class="tab-pane active" id="tab-admin">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Admin Penerima Ringkasan Harian</h3>
+            </div>
+            <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px;">Admin yang terdaftar di sini akan menerima ringkasan harian via Telegram setiap pagi setelah cron job berjalan.</p>
+
+            <div style="background:var(--bg-elev);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
+              <strong style="font-size:13px;display:block;margin-bottom:10px;">Tambah Admin Baru</strong>
+              <div class="form-row">
+                <input type="text" id="newAdminName" placeholder="Nama admin">
+                <input type="text" id="newAdminChatId" placeholder="Telegram Chat ID">
+                <button class="btn btn-primary" onclick="addAdmin()">+ Tambah</button>
+              </div>
+              <small style="font-size:11px;color:var(--text-mute);">Admin harus chat bot dulu untuk dapat Chat ID. <a href="start-bot.html" target="_blank" style="color:var(--accent);">Lihat panduan</a></small>
+            </div>
+
+            <div id="adminList" class="admin-list"></div>
+          </div>
+        </div>
+
+        <!-- TAB: SCHEDULE -->
+        <div class="tab-pane" id="tab-schedule">
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Jadwal Cron Job</h3></div>
+
+            <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:var(--success);">● AKTIF</span></div>
+            <div class="info-row"><span class="info-label">Jadwal kirim</span><span class="info-value">Setiap hari, 08:00 WIB</span></div>
+            <div class="info-row"><span class="info-label">Zona waktu server</span><span class="info-value">UTC (08:00 WIB = 01:00 UTC)</span></div>
+            <div class="info-row"><span class="info-label">Cron expression</span><span class="info-value">0 1 * * *</span></div>
+            <div class="info-row"><span class="info-label">Hari kirim pengingat</span><span class="info-value">H-30, H-14, H-7, H-1, hari-H</span></div>
+            <div class="info-row"><span class="info-label">Tipe pengingat</span><span class="info-value">Pajak, STNK, Service</span></div>
+
+            <div style="background:rgba(255, 159, 67, 0.08);border:1px solid rgba(255, 159, 67, 0.2);border-left:3px solid var(--warning);border-radius:8px;padding:14px;margin-top:16px;font-size:12px;color:var(--text-dim);">
+              <strong style="color:var(--warning);">📝 Cara Mengubah Jadwal</strong><br><br>
+              Untuk mengubah jadwal kirim, edit file <code style="background:var(--bg);padding:2px 6px;border-radius:4px;color:var(--accent);">vercel.json</code> di GitHub:
+              <div class="code-snippet" style="margin-top:8px;">
+{
+  "crons": [{
+    "path": "/api/send-reminders",
+    "schedule": "0 1 * * *"
+  }]
+}</div>
+              <br>
+              Konversi ke UTC (kurangi 7 jam dari WIB):<br>
+              • 07:00 WIB = "0 0 * * *"<br>
+              • 08:00 WIB = "0 1 * * *"<br>
+              • 09:00 WIB = "0 2 * * *"<br>
+              • 10:00 WIB = "0 3 * * *"
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SYSTEM -->
+        <div class="tab-pane" id="tab-system">
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Informasi Sistem</h3></div>
+
+            <div class="info-row"><span class="info-label">Versi SIMOPAS</span><span class="info-value">v4.0</span></div>
+            <div class="info-row"><span class="info-label">Total Kendaraan</span><span class="info-value" id="infoTotal">-</span></div>
+            <div class="info-row"><span class="info-label">Total PJ Aktif</span><span class="info-value" id="infoPj">-</span></div>
+            <div class="info-row"><span class="info-label">PJ Sudah Daftar Bot</span><span class="info-value" id="infoBotReady">-</span></div>
+            <div class="info-row"><span class="info-label">Total Notifikasi Terkirim</span><span class="info-value" id="infoNotif">-</span></div>
+
+            <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;">
+              <a href="https://supabase.com/dashboard" target="_blank" class="btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 5L9 19l-4-4"/></svg>
+                Buka Supabase
+              </a>
+              <a href="https://vercel.com/dashboard" target="_blank" class="btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 5L9 19l-4-4"/></svg>
+                Buka Vercel
+              </a>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <div class="card-header"><h3 class="card-title">Dokumentasi</h3></div>
+            <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">SIMOPAS adalah Sistem Monitoring Pajak & Service Kendaraan Dinas untuk Kanim. Dibangun dengan:</p>
+            <ul style="font-size:12px;color:var(--text-dim);padding-left:20px;line-height:2;">
+              <li>Frontend: HTML + Vanilla JavaScript</li>
+              <li>Backend: Vercel Serverless Functions (Node.js)</li>
+              <li>Database: PostgreSQL via Supabase</li>
+              <li>Notifikasi: Telegram Bot API</li>
+              <li>Hosting: Vercel (Free Tier)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.toggle('active', i.dataset.tab === tab));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
+  if (tab === 'system') loadSystemInfo();
+}
+
+async function loadAdmins() {
+  const { data, error } = await supabaseClient.from('admin_chats').select('*').order('created_at', { ascending: true });
+  if (error) { toast('Gagal memuat admin', error.message, 'danger'); return; }
+
+  const list = document.getElementById('adminList');
+  if (!data || data.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Belum ada admin terdaftar</p></div>';
+    return;
+  }
+  const getInitials = (n) => n.split(' ').map(s => s[0]).slice(0,2).join('').toUpperCase();
+  list.innerHTML = data.map(a => `
+    <div class="admin-item">
+      <div class="admin-avatar">${getInitials(a.nama)}</div>
+      <div class="admin-info">
+        <div class="admin-name">${a.nama}</div>
+        <div class="admin-chat-id">Chat ID: ${a.telegram_chat_id}</div>
+      </div>
+      <span class="status-badge ${a.aktif ? 'status-active' : 'status-expired'}">${a.aktif ? 'AKTIF' : 'NONAKTIF'}</span>
+      <button class="icon-btn danger" onclick="deleteAdmin(${a.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+    </div>
+  `).join('');
+}
+
+async function addAdmin() {
+  const nama = document.getElementById('newAdminName').value.trim();
+  const chatId = document.getElementById('newAdminChatId').value.trim();
+  if (!nama || !chatId) { toast('Data belum lengkap', 'Isi nama dan Chat ID', 'warning'); return; }
+  const { error } = await supabaseClient.from('admin_chats').insert({ nama, telegram_chat_id: chatId, aktif: true });
+  if (error) { toast('Gagal tambah', error.message, 'danger'); return; }
+  toast('Admin ditambahkan', nama);
+  document.getElementById('newAdminName').value = '';
+  document.getElementById('newAdminChatId').value = '';
+  await loadAdmins();
+}
+
+async function deleteAdmin(id) {
+  if (!confirm('Hapus admin ini?')) return;
+  const { error } = await supabaseClient.from('admin_chats').delete().eq('id', id);
+  if (error) { toast('Gagal hapus', error.message, 'danger'); return; }
+  toast('Admin dihapus', '', 'danger');
+  await loadAdmins();
+}
+
+async function loadSystemInfo() {
+  const [{ data: kendaraan }, { count: notifCount }] = await Promise.all([
+    supabaseClient.from('kendaraan').select('pj, hp, telegram_chat_id'),
+    supabaseClient.from('notifikasi_log').select('*', { count: 'exact', head: true }).eq('status', 'sent')
+  ]);
+
+  document.getElementById('infoTotal').textContent = (kendaraan || []).length;
+  const pjMap = {};
+  (kendaraan || []).forEach(k => { pjMap[k.pj + '|' + k.hp] = k.telegram_chat_id; });
+  document.getElementById('infoPj').textContent = Object.keys(pjMap).length;
+  document.getElementById('infoBotReady').textContent = Object.values(pjMap).filter(c => !!c).length;
+  document.getElementById('infoNotif').textContent = notifCount || 0;
+}
+
+(async function init() {
+  const user = await simopasInit('pengaturan');
+  if (user) await loadAdmins();
+})();
+</script>
+
+</body>
+</html>

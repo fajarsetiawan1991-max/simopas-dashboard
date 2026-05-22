@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kendaraan — SIMOPAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+.filters-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.filter-select { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
+.table-wrap { overflow-x: auto; }
+table { min-width: 1000px; }
+.days-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
+.days-cell.warning { color: var(--warning); } .days-cell.danger { color: var(--danger); } .days-cell.success { color: var(--text-dim); }
+.km-bar { width: 80px; height: 5px; background: var(--bg-elev); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.km-bar-fill { height: 100%; background: var(--success); }
+.km-bar-fill.warning { background: var(--warning); } .km-bar-fill.danger { background: var(--danger); }
+@media (max-width: 768px) { .table-wrap { display: none; } }
+.mobile-cards { display: none; padding: 12px; }
+@media (max-width: 768px) { .mobile-cards { display: block; } }
+.mobile-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="mobile-menu-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="page-title">
+        <h1>Kelola <em>Kendaraan</em></h1>
+        <p>Manajemen lengkap data kendaraan dinas dengan filter dan export</p>
+      </div>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5a647a" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Cari plat, type, PJ..." id="searchInput">
+        </div>
+        <button class="btn" onclick="exportCSV()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <a href="app.html" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Tambah Baru
+        </a>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <select class="filter-select" id="filterAsal">
+        <option value="">Semua Asal</option>
+        <option value="ditjenim">Ditjenim</option>
+        <option value="kanim_sampit">Kanim Sampit</option>
+        <option value="kanim_pky">Kanim Palangkaraya</option>
+        <option value="kanim_kobar">Kanim Kobar</option>
+        <option value="kanwil">Kanwil Kemenkum</option>
+      </select>
+      <select class="filter-select" id="filterJenis">
+        <option value="">Semua Jenis</option>
+        <option value="Motor">Motor</option>
+        <option value="Mobil">Mobil</option>
+        <option value="Truk">Truk</option>
+        <option value="Bus">Bus</option>
+      </select>
+      <select class="filter-select" id="filterStatus">
+        <option value="">Semua Status</option>
+        <option value="active">Aktif</option>
+        <option value="warning">Akan Mati</option>
+        <option value="expired">Mati</option>
+      </select>
+      <select class="filter-select" id="sortBy">
+        <option value="pajakDate">Urutkan: Jatuh Tempo</option>
+        <option value="plate">Urutkan: Plat</option>
+        <option value="pj">Urutkan: PJ</option>
+        <option value="km">Urutkan: KM Tertinggi</option>
+      </select>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;" id="resultCount">0 data</span>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>Plat</th><th>Type</th><th>Asal</th><th>Pajak</th><th>STNK</th><th>Service</th><th>KM</th><th>PJ</th><th></th></tr></thead>
+          <tbody id="tableBody"><tr><td colspan="10" class="loading"><div class="loading-spinner"></div>Memuat...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="mobile-cards" id="mobileCards"></div>
+    </div>
+  </main>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+let vehicles = [];
+let filters = { search: '', asal: '', jenis: '', status: '', sortBy: 'pajakDate' };
+
+async function loadVehicles() {
+  const { data, error } = await supabaseClient.from('kendaraan').select('*');
+  if (error) { toast('Gagal memuat', error.message, 'danger'); return; }
+  vehicles = (data || []).map(dbToUi);
+  render();
+}
+
+function applyFilters() {
+  let f = vehicles;
+  if (filters.search) {
+    const t = filters.search.toLowerCase();
+    f = f.filter(v => v.plate.toLowerCase().includes(t) || v.type.toLowerCase().includes(t) || v.pj.toLowerCase().includes(t) || (v.stnk && v.stnk.includes(t)));
+  }
+  if (filters.asal) f = f.filter(v => v.asal === filters.asal);
+  if (filters.jenis) f = f.filter(v => v.jenis === filters.jenis);
+  if (filters.status) f = f.filter(v => getStatus(daysUntil(v.pajakDate)) === filters.status);
+
+  if (filters.sortBy === 'pajakDate') f.sort((a,b) => daysUntil(a.pajakDate) - daysUntil(b.pajakDate));
+  else if (filters.sortBy === 'plate') f.sort((a,b) => a.plate.localeCompare(b.plate));
+  else if (filters.sortBy === 'pj') f.sort((a,b) => a.pj.localeCompare(b.pj));
+  else if (filters.sortBy === 'km') f.sort((a,b) => (b.km||0) - (a.km||0));
+  return f;
+}
+
+function getKmStatus(km, kmMax) {
+  const pct = (km / kmMax) * 100;
+  if (pct >= 95) return 'danger';
+  if (pct >= 80) return 'warning';
+  return 'success';
+}
+
+function render() {
+  const filtered = applyFilters();
+  document.getElementById('resultCount').textContent = `${filtered.length} DATA`;
+
+  const tbody = document.getElementById('tableBody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><h3>Tidak ada data</h3></td></tr>`;
+    document.getElementById('mobileCards').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((v, idx) => {
+    const days = daysUntil(v.pajakDate);
+    const status = getStatus(days);
+    const daysClass = status === 'active' ? 'success' : status === 'warning' ? 'warning' : 'danger';
+    const kmStatus = getKmStatus(v.km, v.kmMax);
+    const kmPct = Math.min(100, (v.km / v.kmMax) * 100);
+    return `<tr>
+      <td style="color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:11px;">${String(idx + 1).padStart(2, '0')}</td>
+      <td><span class="plate">${v.plate}</span></td>
+      <td><div class="cell-stack"><span class="cell-primary">${v.type}</span><span class="cell-secondary">${v.jenis.toUpperCase()}</span></div></td>
+      <td><span class="origin-tag">${ORIGIN_LABELS[v.asal]}</span></td>
+      <td><div class="cell-stack"><span class="cell-primary" style="font-size:12px;">${formatDate(v.pajakDate)}</span><span class="days-cell ${daysClass}">${formatDays(days)}</span></div></td>
+      <td><div class="cell-stack"><span class="cell-primary" style="font-size:12px;">${formatDate(v.stnkDate)}</span><span class="cell-secondary">STNK ${v.stnk || '-'}</span></div></td>
+      <td><span class="cell-primary" style="font-size:12px;">${formatDate(v.serviceDate)}</span></td>
+      <td><div class="cell-stack"><span class="cell-secondary" style="color:var(--text);">${formatNumber(v.km)} km</span><div class="km-bar"><div class="km-bar-fill ${kmStatus}" style="width:${kmPct}%"></div></div></div></td>
+      <td><div class="cell-stack"><span class="cell-primary">${v.pj}</span><span class="cell-secondary">${v.hp}</span></div></td>
+      <td><div class="actions-cell">
+        <a href="app.html" class="icon-btn" title="Lihat di Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+        <button class="icon-btn danger" onclick="deleteVehicle(${v.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('mobileCards').innerHTML = filtered.map(v => {
+    const days = daysUntil(v.pajakDate);
+    const status = getStatus(days);
+    const statusClass = status === 'active' ? 'status-active' : status === 'warning' ? 'status-warning' : 'status-expired';
+    const statusText = status === 'active' ? 'AKTIF' : status === 'warning' ? 'SEGERA' : 'MATI';
+    return `<div class="mobile-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div><div style="font-weight:700;">${v.type}</div><div class="cell-secondary">${v.jenis.toUpperCase()} • ${ORIGIN_LABELS[v.asal]}</div></div><span class="plate">${v.plate}</span></div>
+      <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);"><div class="cell-secondary">${v.pj}</div><span class="status-badge ${statusClass}">${statusText}</span></div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteVehicle(id) {
+  const v = vehicles.find(x => x.id === id); if (!v) return;
+  if (!confirm(`Hapus ${v.plate}?`)) return;
+  const { error } = await supabaseClient.from('kendaraan').delete().eq('id', id);
+  if (error) { toast('Gagal', error.message, 'danger'); return; }
+  toast('Dihapus', `${v.plate} dihapus`, 'danger');
+  await loadVehicles();
+}
+
+function exportCSV() {
+  const filtered = applyFilters();
+  const headers = ['No.Polisi', 'Jenis', 'Type', 'Asal', 'No.STNK', 'Tgl STNK', 'No.Pajak', 'Tgl Pajak', 'Tgl Service', 'KM', 'PJ', 'HP', 'Telegram Chat ID'];
+  const rows = filtered.map(v => [v.plate, v.jenis, v.type, ORIGIN_LABELS[v.asal], v.stnk||'', v.stnkDate||'', v.noPajak||'', v.pajakDate||'', v.serviceDate||'', v.km||0, v.pj, v.hp, v.telegramChatId||'']);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `simopas-kendaraan-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  toast('CSV diexport', `${filtered.length} data`);
+}
+
+document.getElementById('searchInput').oninput = e => { filters.search = e.target.value; render(); };
+document.getElementById('filterAsal').onchange = e => { filters.asal = e.target.value; render(); };
+document.getElementById('filterJenis').onchange = e => { filters.jenis = e.target.value; render(); };
+document.getElementById('filterStatus').onchange = e => { filters.status = e.target.value; render(); };
+document.getElementById('sortBy').onchange = e => { filters.sortBy = e.target.value; render(); };
+
+(async function init() {
+  const user = await simopasInit('kendaraan');
+  if (user) await loadVehicles();
+})();
+</script>
+
+</body>
+</html>

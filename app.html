@@ -3,1193 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIMOPAS — Sistem Monitoring Pajak & Service Kendaraan</title>
+<title>Dashboard — SIMOPAS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="config.js"></script>
+<link rel="stylesheet" href="shared.css">
 <style>
-  :root {
-    --bg: #0a0e1a;
-    --bg-elev: #111726;
-    --bg-card: #161e30;
-    --bg-hover: #1d2538;
-    --border: #232b40;
-    --border-hi: #344057;
-    --text: #e8ecf5;
-    --text-dim: #8893a8;
-    --text-mute: #5a647a;
-    --accent: #ffd93d;
-    --accent-2: #4cc9f0;
-    --danger: #ff5566;
-    --warning: #ff9f43;
-    --success: #2ee59d;
-    --info: #6fa8ff;
-    --purple: #a78bfa;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html, body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Manrope', sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    min-height: 100vh;
-  }
-
-  body {
-    background-image:
-      radial-gradient(ellipse 800px 600px at 0% 0%, rgba(255, 217, 61, 0.05), transparent 50%),
-      radial-gradient(ellipse 600px 400px at 100% 0%, rgba(76, 201, 240, 0.04), transparent 50%),
-      radial-gradient(ellipse 800px 600px at 50% 100%, rgba(167, 139, 250, 0.03), transparent 50%);
-  }
-
-  .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
-
-  /* SIDEBAR */
-  .sidebar {
-    background: var(--bg-elev);
-    border-right: 1px solid var(--border);
-    padding: 20px 0;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-  }
-
-  .brand {
-    padding: 4px 24px 24px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 16px;
-  }
-
-  .brand-mark { display: flex; align-items: center; gap: 12px; }
-
-  .brand-logo {
-    width: 38px; height: 38px;
-    background: linear-gradient(135deg, var(--accent), #ff9f43);
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    font-family: 'Instrument Serif', serif;
-    font-size: 24px;
-    color: #0a0e1a;
-    font-weight: 600;
-    transform: rotate(-3deg);
-    box-shadow: 0 8px 20px rgba(255, 217, 61, 0.2);
-  }
-
-  .brand-text { display: flex; flex-direction: column; }
-  .brand-name { font-weight: 800; font-size: 17px; letter-spacing: -0.02em; }
-  .brand-sub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    color: var(--text-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-top: 2px;
-  }
-
-  .nav-section { padding: 8px 16px; }
-  .nav-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    padding: 10px 12px 6px;
-  }
-
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.15s ease;
-    position: relative;
-    user-select: none;
-  }
-
-  .nav-item:hover { background: var(--bg-card); color: var(--text); }
-  .nav-item.active { background: var(--bg-card); color: var(--text); }
-  .nav-item.active::before {
-    content: '';
-    position: absolute;
-    left: -16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 60%;
-    background: var(--accent);
-    border-radius: 0 3px 3px 0;
-  }
-
-  .nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
-
-  .nav-badge {
-    margin-left: auto;
-    background: var(--danger);
-    color: white;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 10px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .sidebar-footer {
-    margin-top: auto;
-    padding: 16px;
-    border-top: 1px solid var(--border);
-    margin-top: 24px;
-  }
-
-  .user-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    background: var(--bg-card);
-    border-radius: 8px;
-  }
-
-  .user-avatar {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-2), var(--purple));
-    display: grid;
-    place-items: center;
-    font-weight: 700;
-    font-size: 12px;
-    color: white;
-  }
-
-  .user-info { flex: 1; min-width: 0; }
-  .user-name { font-size: 12px; font-weight: 600; }
-  .user-role { font-size: 10px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; }
-
-  /* MAIN */
-  .main { padding: 24px 32px 48px; max-width: 100%; overflow-x: hidden; }
-
-  .topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 28px;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .page-title h1 {
-    font-family: 'Instrument Serif', serif;
-    font-size: 36px;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    line-height: 1.1;
-  }
-
-  .page-title h1 em {
-    color: var(--accent);
-    font-style: italic;
-  }
-
-  .page-title p {
-    color: var(--text-dim);
-    font-size: 13px;
-    margin-top: 6px;
-  }
-
-  .topbar-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-
-  .search-box {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 280px;
-    transition: border 0.15s ease;
-  }
-
-  .search-box:focus-within { border-color: var(--accent); }
-
-  .search-box input {
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    flex: 1;
-  }
-
-  .search-box input::placeholder { color: var(--text-mute); }
-
-  .btn {
-    padding: 10px 16px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-  }
-
-  .btn:hover { border-color: var(--border-hi); background: var(--bg-hover); }
-
-  .btn-primary {
-    background: var(--accent);
-    color: #0a0e1a;
-    border-color: var(--accent);
-  }
-
-  .btn-primary:hover { background: #ffd93d; filter: brightness(1.05); border-color: var(--accent); }
-
-  .btn-ghost {
-    background: transparent;
-    border-color: transparent;
-    color: var(--text-dim);
-  }
-
-  /* STATS */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 14px;
-    margin-bottom: 28px;
-  }
-
-  .stat-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.2s ease;
-  }
-
-  .stat-card:hover { border-color: var(--border-hi); transform: translateY(-1px); }
-
-  .stat-card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--c, var(--text-mute));
-  }
-
-  .stat-card.c-info { --c: var(--info); }
-  .stat-card.c-success { --c: var(--success); }
-  .stat-card.c-warning { --c: var(--warning); }
-  .stat-card.c-danger { --c: var(--danger); }
-  .stat-card.c-accent { --c: var(--accent); }
-
-  .stat-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 14px;
-  }
-
-  .stat-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  .stat-icon {
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    background: color-mix(in srgb, var(--c) 12%, transparent);
-    color: var(--c);
-  }
-
-  .stat-icon svg { width: 14px; height: 14px; }
-
-  .stat-value {
-    font-family: 'Instrument Serif', serif;
-    font-size: 40px;
-    font-weight: 400;
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-
-  .stat-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  /* FILTERS */
-  .toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
-
-  .pill {
-    padding: 7px 14px;
-    border-radius: 100px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-dim);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    user-select: none;
-  }
-
-  .pill:hover { border-color: var(--border-hi); color: var(--text); }
-  .pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
-  .pill-count {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    opacity: 0.7;
-    background: rgba(0,0,0,0.15);
-    padding: 1px 6px;
-    border-radius: 8px;
-  }
-  .pill.active .pill-count { background: rgba(255,255,255,0.15); }
-
-  /* TABLE */
-  .table-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .table-header {
-    padding: 16px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .table-header h3 { font-size: 15px; font-weight: 700; }
-  .table-header-meta {
-    font-size: 11px;
-    color: var(--text-mute);
-    font-family: 'JetBrains Mono', monospace;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-  }
-
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; min-width: 1200px; }
-
-  th {
-    text-align: left;
-    padding: 12px 16px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 600;
-    background: var(--bg-elev);
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-  }
-
-  td {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border);
-    font-size: 13px;
-    vertical-align: middle;
-  }
-
-  tr:last-child td { border-bottom: none; }
-  tr.row-clickable { cursor: pointer; transition: background 0.1s ease; }
-  tr.row-clickable:hover { background: var(--bg-hover); }
-
-  .plate {
-    display: inline-flex;
-    align-items: center;
-    background: #fff;
-    color: #000;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 2px solid #000;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
-
-  .cell-stack { display: flex; flex-direction: column; gap: 2px; }
-  .cell-primary { font-weight: 600; }
-  .cell-secondary {
-    font-size: 11px;
-    color: var(--text-mute);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 100px;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
-
-  .status-badge::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
-  .status-active { background: rgba(46, 229, 157, 0.1); color: var(--success); }
-  .status-warning { background: rgba(255, 159, 67, 0.12); color: var(--warning); }
-  .status-expired { background: rgba(255, 85, 102, 0.12); color: var(--danger); }
-  .status-info { background: rgba(111, 168, 255, 0.12); color: var(--info); }
-
-  .days-cell {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .days-cell.warning { color: var(--warning); }
-  .days-cell.danger { color: var(--danger); }
-  .days-cell.success { color: var(--text-dim); }
-
-  .km-bar {
-    width: 80px;
-    height: 5px;
-    background: var(--bg-elev);
-    border-radius: 3px;
-    overflow: hidden;
-    margin-top: 4px;
-  }
-  .km-bar-fill { height: 100%; background: var(--c, var(--success)); transition: width 0.3s ease; }
-  .km-bar-fill.warning { background: var(--warning); }
-  .km-bar-fill.danger { background: var(--danger); }
-
-  .origin-tag {
-    display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    font-weight: 600;
-    padding: 3px 7px;
-    border-radius: 4px;
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .notif-icons { display: flex; gap: 4px; }
-
-  .notif-icon {
-    width: 24px; height: 24px;
-    border-radius: 6px;
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--border);
-    background: var(--bg-elev);
-    color: var(--text-mute);
-  }
-  .notif-icon.active.tg { background: rgba(111, 168, 255, 0.12); border-color: rgba(111, 168, 255, 0.3); color: var(--info); }
-  .notif-icon.active.wa { background: rgba(46, 229, 157, 0.12); border-color: rgba(46, 229, 157, 0.3); color: var(--success); }
-  .notif-icon svg { width: 12px; height: 12px; }
-
-  .actions-cell { display: flex; gap: 4px; }
-
-  .icon-btn {
-    width: 28px; height: 28px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--bg-elev);
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    color: var(--text-dim);
-    transition: all 0.15s ease;
-  }
-  .icon-btn:hover { color: var(--text); border-color: var(--border-hi); background: var(--bg-hover); }
-  .icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
-  .icon-btn svg { width: 13px; height: 13px; }
-
-  /* MODAL */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(6px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    padding: 24px;
-  }
-
-  .modal-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-  .modal {
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 760px;
-    max-height: 92vh;
-    overflow-y: auto;
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-  }
-  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-  .modal-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--bg-elev);
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-
-  .modal-header h2 {
-    font-family: 'Instrument Serif', serif;
-    font-size: 26px;
-    font-weight: 400;
-  }
-  .modal-header h2 em { color: var(--accent); font-style: italic; }
-
-  .modal-close {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    cursor: pointer;
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    font-size: 18px;
-    display: grid;
-    place-items: center;
-    line-height: 1;
-  }
-  .modal-close:hover { background: var(--bg-hover); color: var(--text); }
-
-  .modal-body { padding: 24px; }
-
-  .form-section { margin-bottom: 24px; }
-  .form-section:last-child { margin-bottom: 0; }
-
-  .form-section-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-bottom: 14px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .form-section-num {
-    display: inline-grid;
-    place-items: center;
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    background: var(--accent);
-    color: #0a0e1a;
-    font-weight: 700;
-  }
-
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
-  .form-grid.full { grid-template-columns: 1fr; }
-  .span-2 { grid-column: span 2; }
-
-  .form-field { display: flex; flex-direction: column; gap: 6px; }
-
-  .form-field label {
-    font-size: 11px;
-    color: var(--text-dim);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .form-field label .req { color: var(--danger); }
-
-  .form-field input,
-  .form-field select,
-  .form-field textarea {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    outline: none;
-    transition: border 0.15s ease;
-    width: 100%;
-  }
-  .form-field input:focus,
-  .form-field select:focus,
-  .form-field textarea:focus { border-color: var(--accent); }
-
-  .toggle-group { display: flex; gap: 12px; }
-
-  .toggle-card {
-    flex: 1;
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--bg-card);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.15s ease;
-  }
-  .toggle-card:hover { border-color: var(--border-hi); }
-  .toggle-card.checked { border-color: var(--accent); background: rgba(255, 217, 61, 0.04); }
-  .toggle-card input { display: none; }
-
-  .toggle-icon {
-    width: 34px; height: 34px;
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-  }
-  .toggle-icon.tg { background: rgba(111, 168, 255, 0.15); color: var(--info); }
-  .toggle-icon.wa { background: rgba(46, 229, 157, 0.15); color: var(--success); }
-
-  .toggle-info { flex: 1; min-width: 0; }
-  .toggle-info strong { display: block; font-size: 13px; }
-  .toggle-info span { font-size: 10px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; }
-
-  .modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    background: var(--bg);
-    position: sticky;
-    bottom: 0;
-  }
-
-  .modal-footer-info {
-    font-size: 11px;
-    color: var(--text-mute);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  /* DETAIL PANEL */
-  .detail-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(2px);
-    display: none;
-    z-index: 90;
-  }
-  .detail-overlay.show { display: block; animation: fadeIn 0.2s ease; }
-
-  .detail-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 480px;
-    max-width: 100%;
-    background: var(--bg-elev);
-    border-left: 1px solid var(--border);
-    z-index: 95;
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    display: flex;
-    flex-direction: column;
-    box-shadow: -20px 0 60px rgba(0,0,0,0.4);
-  }
-  .detail-panel.show { transform: translateX(0); }
-
-  .detail-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .detail-body { flex: 1; overflow-y: auto; padding: 24px; }
-
-  .detail-hero {
-    background: linear-gradient(135deg, var(--bg-card), var(--bg-hover));
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    border: 1px solid var(--border);
-  }
-
-  .detail-hero-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-  }
-
-  .detail-vehicle-name {
-    font-family: 'Instrument Serif', serif;
-    font-size: 24px;
-    margin-bottom: 4px;
-  }
-
-  .detail-vehicle-meta {
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-
-  .detail-info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-  }
-
-  .info-item-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    color: var(--text-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 4px;
-  }
-
-  .info-item-value { font-size: 13px; font-weight: 600; }
-
-  .detail-section {
-    margin-bottom: 24px;
-  }
-
-  .detail-section-title {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--text);
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .countdown-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .countdown-icon {
-    width: 40px; height: 40px;
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-  }
-
-  .countdown-content { flex: 1; min-width: 0; }
-  .countdown-label { font-size: 11px; color: var(--text-mute); margin-bottom: 2px; }
-  .countdown-date { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-  .countdown-status {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    font-weight: 600;
-  }
-
-  .timeline { position: relative; padding-left: 20px; }
-  .timeline::before {
-    content: '';
-    position: absolute;
-    left: 5px;
-    top: 6px;
-    bottom: 6px;
-    width: 1px;
-    background: var(--border);
-  }
-
-  .timeline-item {
-    position: relative;
-    padding-bottom: 12px;
-  }
-  .timeline-item::before {
-    content: '';
-    position: absolute;
-    left: -19px;
-    top: 6px;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--info);
-    border: 2px solid var(--bg-elev);
-    box-shadow: 0 0 0 1px var(--border);
-  }
-  .timeline-item.sent::before { background: var(--success); }
-  .timeline-item.failed::before { background: var(--danger); }
-
-  .timeline-date {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-mute);
-    margin-bottom: 2px;
-  }
-  .timeline-text { font-size: 12px; }
-
-  .detail-footer {
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 8px;
-  }
-
-  /* TOAST */
-  .toast-container {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 360px;
-  }
-
-  .toast {
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--success);
-    border-radius: 10px;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  }
-  .toast.warning { border-left-color: var(--warning); }
-  .toast.danger { border-left-color: var(--danger); }
-  .toast.info { border-left-color: var(--info); }
-  @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-  .toast-icon {
-    width: 30px; height: 30px;
-    border-radius: 8px;
-    background: rgba(46, 229, 157, 0.15);
-    color: var(--success);
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-  }
-  .toast.warning .toast-icon { background: rgba(255, 159, 67, 0.15); color: var(--warning); }
-  .toast.danger .toast-icon { background: rgba(255, 85, 102, 0.15); color: var(--danger); }
-  .toast.info .toast-icon { background: rgba(111, 168, 255, 0.15); color: var(--info); }
-
-  .toast-content { flex: 1; min-width: 0; }
-  .toast-content strong { display: block; font-size: 13px; }
-  .toast-content span { font-size: 11px; color: var(--text-dim); }
-
-  /* MOBILE CARDS (hidden by default) */
-  .mobile-cards { display: none; }
-
-  .mobile-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .mobile-card:active { background: var(--bg-hover); transform: scale(0.98); }
-  .mobile-card.urgent { border-color: rgba(255, 85, 102, 0.4); }
-  .mobile-card.warn { border-color: rgba(255, 159, 67, 0.4); }
-
-  .mc-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-    gap: 10px;
-  }
-
-  .mc-title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
-  .mc-sub { font-size: 11px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; }
-
-  .mc-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
-
-  .mc-stat-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    color: var(--text-mute);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 3px;
-  }
-  .mc-stat-value { font-size: 12px; font-weight: 600; }
-
-  .mc-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
-
-  .mc-pj { font-size: 12px; font-weight: 600; }
-  .mc-pj-meta { font-size: 10px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; }
-
-  /* FAB BUTTON */
-  .fab {
-    display: none;
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 56px; height: 56px;
-    background: var(--accent);
-    color: #0a0e1a;
-    border: none;
-    border-radius: 50%;
-    box-shadow: 0 8px 24px rgba(255, 217, 61, 0.4);
-    cursor: pointer;
-    z-index: 40;
-    align-items: center;
-    justify-content: center;
-  }
-  .fab:active { transform: scale(0.95); }
-
-  .sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 55;
-  }
-  .sidebar-overlay.show { display: block; }
-
-  .mobile-menu-btn {
-    display: none;
-    width: 44px; height: 44px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* MOBILE */
-  @media (max-width: 1000px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 768px) {
-    .app { grid-template-columns: 1fr; }
-    .sidebar {
-      position: fixed;
-      left: -260px;
-      z-index: 60;
-      width: 240px;
-      transition: left 0.3s ease;
-    }
-    .sidebar.open { left: 0; }
-
-    .main { padding: 16px; }
-    .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .stat-card { padding: 14px; }
-    .stat-value { font-size: 30px; }
-    .stat-card:nth-child(5) { grid-column: span 2; }
-
-    .page-title h1 { font-size: 24px; }
-    .page-title p { font-size: 12px; }
-    .search-box { min-width: 0; flex: 1; }
-    .topbar-actions { width: 100%; }
-    .topbar-actions .btn-primary { display: none; }
-
-    .form-grid, .form-grid.three { grid-template-columns: 1fr; }
-    .span-2 { grid-column: span 1; }
-    .detail-panel { width: 100%; }
-    .mobile-menu-btn { display: inline-flex !important; }
-    .fab { display: inline-flex; }
-
-    .table-wrap { display: none; }
-    .mobile-cards { display: block; padding: 12px; }
-
-    .icon-btn { width: 36px; height: 36px; }
-    .pill { padding: 9px 14px; font-size: 13px; }
-
-    .toggle-group { flex-direction: column; }
-  }
-
-  @media (max-width: 380px) {
-    .stats { grid-template-columns: 1fr; }
-    .stat-card:nth-child(5) { grid-column: span 1; }
-  }
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; transition: all 0.2s ease; }
+.stat-card:hover { border-color: var(--border-hi); transform: translateY(-1px); }
+.stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--c, var(--text-mute)); }
+.stat-card.c-info { --c: var(--info); } .stat-card.c-success { --c: var(--success); } .stat-card.c-warning { --c: var(--warning); } .stat-card.c-danger { --c: var(--danger); } .stat-card.c-accent { --c: var(--accent); }
+.stat-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.stat-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.1em; }
+.stat-icon { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); }
+.stat-icon svg { width: 14px; height: 14px; }
+.stat-value { font-family: 'Instrument Serif', serif; font-size: 40px; font-weight: 400; line-height: 1; margin-bottom: 6px; }
+.stat-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+
+.km-bar { width: 80px; height: 5px; background: var(--bg-elev); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.km-bar-fill { height: 100%; background: var(--success); transition: width 0.3s ease; }
+.km-bar-fill.warning { background: var(--warning); } .km-bar-fill.danger { background: var(--danger); }
+
+.days-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
+.days-cell.warning { color: var(--warning); } .days-cell.danger { color: var(--danger); } .days-cell.success { color: var(--text-dim); }
+
+.table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.table-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); gap: 12px; flex-wrap: wrap; }
+.table-header h3 { font-size: 15px; font-weight: 700; }
+.table-wrap { overflow-x: auto; }
+table { min-width: 1100px; }
+
+.fab { display: none; position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--accent); color: #0a0e1a; border: none; border-radius: 50%; box-shadow: 0 8px 24px rgba(255, 217, 61, 0.4); cursor: pointer; z-index: 40; align-items: center; justify-content: center; }
+.fab:active { transform: scale(0.95); }
+
+@media (max-width: 1000px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) {
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-value { font-size: 30px; }
+  .stat-card:nth-child(5) { grid-column: span 2; }
+  .table-wrap { display: none; }
+  .topbar-actions .btn-primary { display: none; }
+  .fab { display: inline-flex; }
+}
+
+.mobile-cards { display: none; padding: 12px; }
+@media (max-width: 768px) { .mobile-cards { display: block; } }
+.mobile-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; cursor: pointer; }
+.mc-top { display: flex; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+.mc-title { font-weight: 700; font-size: 15px; }
+.mc-sub { font-size: 11px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+.mc-row { display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 10px; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+.modal-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 760px; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg-elev); position: sticky; top: 0; z-index: 2; }
+.modal-header h2 { font-family: 'Instrument Serif', serif; font-size: 26px; font-weight: 400; }
+.modal-header h2 em { color: var(--accent); font-style: italic; }
+.modal-close { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; width: 32px; height: 32px; border-radius: 8px; font-size: 18px; display: grid; place-items: center; }
+.modal-body { padding: 24px; }
+.form-section { margin-bottom: 24px; }
+.form-section-title { display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.form-section-num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: #0a0e1a; font-weight: 700; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.full { grid-template-columns: 1fr; }
+.span-2 { grid-column: span 2; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.form-field label .req { color: var(--danger); }
+.form-field input, .form-field select { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; transition: border 0.15s ease; width: 100%; }
+.form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+.form-field small { font-size: 10px; color: var(--text-mute); margin-top: 4px; }
+.form-field small a { color: var(--accent); }
+.toggle-card { padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.toggle-card.checked { border-color: var(--accent); background: rgba(255, 217, 61, 0.04); }
+.toggle-card input { display: none; }
+.toggle-icon { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: rgba(111, 168, 255, 0.15); color: var(--info); }
+.toggle-info { flex: 1; }
+.toggle-info strong { display: block; font-size: 13px; }
+.toggle-info span { font-size: 10px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--bg); position: sticky; bottom: 0; }
+@media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .span-2 { grid-column: span 1; } }
 </style>
 </head>
 <body>
 
 <div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar">
-    <div class="brand">
-      <div class="brand-mark">
-        <div class="brand-logo">S</div>
-        <div class="brand-text">
-          <span class="brand-name">SIMOPAS</span>
-          <span class="brand-sub">Monitoring v2.0</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-label">Modul Utama</div>
-      <div class="nav-item active">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Dashboard
-      </div>
-      <div class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
-        Kendaraan
-      </div>
-      <div class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        Kalender
-      </div>
-      <div class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Notifikasi
-        <span class="nav-badge">5</span>
-      </div>
-      <div class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
-        Penanggung Jawab
-      </div>
-    </div>
-
-    <div class="nav-section">
-      <div class="nav-label">Sistem</div>
-      <div class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-        Laporan & Statistik
-      </div>
-      <div class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Log Aktivitas
-      </div>
-      <div class="nav-item">
-        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Pengaturan
-      </div>
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="user-card">
-        <div class="user-avatar" id="userAvatar">AD</div>
-        <div class="user-info">
-          <div class="user-name" id="userName">Loading...</div>
-          <div class="user-role" id="userRole">ADMIN</div>
-        </div>
-        <button class="icon-btn" id="btnLogout" title="Logout" style="margin-left:4px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
   <main class="main">
     <div class="topbar">
-      <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+      <button class="mobile-menu-btn" aria-label="Menu">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div class="page-title">
         <h1>Monitoring Pajak & <em>Service</em> Kendaraan</h1>
-        <p>Kelola data kendaraan dinas dan jadwal pengingat otomatis via Telegram & WhatsApp</p>
+        <p>Ringkasan status pajak, STNK, dan service semua kendaraan dinas</p>
       </div>
       <div class="topbar-actions">
         <div class="search-box">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5a647a" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" placeholder="Cari plat, STNK, atau penanggung jawab..." id="searchInput">
+          <input type="text" placeholder="Cari plat, PJ, atau STNK..." id="searchInput">
         </div>
-        <button class="btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export
-        </button>
         <button class="btn btn-primary" onclick="openAddModal()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
           Tambah Kendaraan
@@ -1197,110 +115,47 @@
       </div>
     </div>
 
-    <!-- STATS -->
     <div class="stats">
       <div class="stat-card c-info">
-        <div class="stat-top">
-          <span class="stat-label">Total Kendaraan</span>
-          <div class="stat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
-          </div>
-        </div>
+        <div class="stat-top"><span class="stat-label">Total Kendaraan</span><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></div></div>
         <div class="stat-value" id="statTotal">0</div>
         <div class="stat-meta"><span>kendaraan terdaftar</span></div>
       </div>
-
       <div class="stat-card c-success">
-        <div class="stat-top">
-          <span class="stat-label">Pajak Aktif</span>
-          <div class="stat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-        </div>
+        <div class="stat-top"><span class="stat-label">Pajak Aktif</span><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div>
         <div class="stat-value" id="statActive">0</div>
         <div class="stat-meta"><span>berlaku &gt; 30 hari</span></div>
       </div>
-
       <div class="stat-card c-warning">
-        <div class="stat-top">
-          <span class="stat-label">Jatuh Tempo</span>
-          <div class="stat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-        </div>
+        <div class="stat-top"><span class="stat-label">Jatuh Tempo</span><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
         <div class="stat-value" id="statWarning">0</div>
         <div class="stat-meta"><span>dalam 30 hari</span></div>
       </div>
-
       <div class="stat-card c-danger">
-        <div class="stat-top">
-          <span class="stat-label">Pajak Mati</span>
-          <div class="stat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-        </div>
+        <div class="stat-top"><span class="stat-label">Pajak Mati</span><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div></div>
         <div class="stat-value" id="statExpired">0</div>
         <div class="stat-meta"><span>perlu tindakan</span></div>
       </div>
-
       <div class="stat-card c-accent">
-        <div class="stat-top">
-          <span class="stat-label">Service Mendatang</span>
-          <div class="stat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-          </div>
-        </div>
+        <div class="stat-top"><span class="stat-label">Service Mendatang</span><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div></div>
         <div class="stat-value" id="statService">0</div>
         <div class="stat-meta"><span>dalam 14 hari</span></div>
       </div>
     </div>
 
-    <!-- TOOLBAR -->
-    <div class="toolbar">
-      <div class="filters">
-        <div class="pill active" data-filter="all">Semua <span class="pill-count" id="cAll">0</span></div>
-        <div class="pill" data-filter="active">Aktif <span class="pill-count" id="cActive">0</span></div>
-        <div class="pill" data-filter="warning">Akan Mati <span class="pill-count" id="cWarning">0</span></div>
-        <div class="pill" data-filter="expired">Pajak Mati <span class="pill-count" id="cExpired">0</span></div>
-        <div class="pill" data-filter="service">Service Due <span class="pill-count" id="cService">0</span></div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="font-size:12px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          Filter Asal
-        </button>
-        <button class="btn btn-ghost" style="font-size:12px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
-          Urutkan
-        </button>
-      </div>
-    </div>
-
-    <!-- TABLE -->
     <div class="table-card">
       <div class="table-header">
         <h3>Daftar Kendaraan Dinas</h3>
-        <span class="table-header-meta" id="tableMeta">DIURUTKAN BERDASARKAN JATUH TEMPO TERDEKAT</span>
+        <span style="font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;" id="tableMeta">DIURUTKAN BERDASARKAN JATUH TEMPO TERDEKAT</span>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>No</th>
-              <th>No. Polisi</th>
-              <th>Jenis / Type</th>
-              <th>Asal Hibah</th>
-              <th>STNK 5 Thn</th>
-              <th>Pajak Tahunan</th>
-              <th>Sisa</th>
-              <th>Service</th>
-              <th>Penanggung Jawab</th>
-              <th>Notif</th>
-              <th>Status</th>
-              <th></th>
+              <th>No</th><th>No. Polisi</th><th>Jenis / Type</th><th>Asal</th><th>Pajak Tahunan</th><th>Sisa</th><th>Service</th><th>PJ</th><th>Status</th><th></th>
             </tr>
           </thead>
-          <tbody id="tableBody"></tbody>
+          <tbody id="tableBody"><tr><td colspan="10" class="loading"><div class="loading-spinner"></div>Memuat data...</td></tr></tbody>
         </table>
       </div>
       <div class="mobile-cards" id="mobileCards"></div>
@@ -1308,13 +163,10 @@
   </main>
 </div>
 
-<!-- Sidebar overlay & FAB for mobile -->
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
-<button class="fab" onclick="openAddModal()" aria-label="Tambah Kendaraan">
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<button class="fab" onclick="openAddModal()" aria-label="Tambah"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button>
 
-<!-- MODAL TAMBAH/EDIT -->
+<!-- MODAL ADD/EDIT -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-header">
@@ -1322,344 +174,83 @@
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
     <div class="modal-body">
-
-      <!-- SECTION 1: DATA KENDARAAN -->
       <div class="form-section">
-        <div class="form-section-title">
-          <span class="form-section-num">1</span>
-          Data Kendaraan
-        </div>
+        <div class="form-section-title"><span class="form-section-num">1</span>Data Kendaraan</div>
         <div class="form-grid">
-          <div class="form-field">
-            <label>Jenis Kendaraan <span class="req">*</span></label>
-            <select id="f-jenis">
-              <option>Motor</option>
-              <option>Mobil</option>
-              <option>Truk</option>
-              <option>Bus</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label>Type / Merek <span class="req">*</span></label>
-            <input type="text" id="f-type" placeholder="Toyota Innova Reborn">
-          </div>
-          <div class="form-field">
-            <label>No. Polisi <span class="req">*</span></label>
-            <input type="text" id="f-plate" placeholder="KT 1234 AB" style="text-transform:uppercase">
-          </div>
-          <div class="form-field">
-            <label>Asal Hibah <span class="req">*</span></label>
-            <select id="f-asal">
-              <option value="ditjenim">Ditjenim</option>
-              <option value="kanim_sampit">Kanim Sampit</option>
-              <option value="kanim_pky">Kanim Palangkaraya</option>
-              <option value="kanim_kobar">Kanim Kobar</option>
-              <option value="kanwil">Kanwil Kemenkum</option>
-            </select>
-          </div>
+          <div class="form-field"><label>Jenis <span class="req">*</span></label><select id="f-jenis"><option>Motor</option><option>Mobil</option><option>Truk</option><option>Bus</option></select></div>
+          <div class="form-field"><label>Type / Merek <span class="req">*</span></label><input type="text" id="f-type" placeholder="Toyota Innova"></div>
+          <div class="form-field"><label>No. Polisi <span class="req">*</span></label><input type="text" id="f-plate" placeholder="KT 1234 AB" style="text-transform:uppercase"></div>
+          <div class="form-field"><label>Asal Hibah <span class="req">*</span></label><select id="f-asal"><option value="ditjenim">Ditjenim</option><option value="kanim_sampit">Kanim Sampit</option><option value="kanim_pky">Kanim Palangkaraya</option><option value="kanim_kobar">Kanim Kobar</option><option value="kanwil">Kanwil Kemenkum</option></select></div>
         </div>
       </div>
-
-      <!-- SECTION 2: STNK & PAJAK -->
       <div class="form-section">
-        <div class="form-section-title">
-          <span class="form-section-num">2</span>
-          STNK & Pajak
-        </div>
+        <div class="form-section-title"><span class="form-section-num">2</span>STNK & Pajak</div>
         <div class="form-grid">
-          <div class="form-field">
-            <label>No. STNK <span class="req">*</span></label>
-            <input type="text" id="f-stnk" placeholder="XXXXXXXX">
-          </div>
-          <div class="form-field">
-            <label>Tgl STNK (Pajak 5 Tahun) <span class="req">*</span></label>
-            <input type="date" id="f-stnk-date">
-          </div>
-          <div class="form-field">
-            <label>No. Pajak / TNKB</label>
-            <input type="text" id="f-no-pajak" placeholder="XXXXXXXX">
-          </div>
-          <div class="form-field">
-            <label>Tgl Pajak Tahunan <span class="req">*</span></label>
-            <input type="date" id="f-pajak-date">
-          </div>
+          <div class="form-field"><label>No. STNK</label><input type="text" id="f-stnk"></div>
+          <div class="form-field"><label>Tgl STNK (5 Tahun) <span class="req">*</span></label><input type="date" id="f-stnk-date"></div>
+          <div class="form-field"><label>No. Pajak</label><input type="text" id="f-no-pajak"></div>
+          <div class="form-field"><label>Tgl Pajak Tahunan <span class="req">*</span></label><input type="date" id="f-pajak-date"></div>
         </div>
       </div>
-
-      <!-- SECTION 3: SERVICE -->
       <div class="form-section">
-        <div class="form-section-title">
-          <span class="form-section-num">3</span>
-          Service Berkala
-        </div>
+        <div class="form-section-title"><span class="form-section-num">3</span>Service</div>
         <div class="form-grid">
-          <div class="form-field">
-            <label>Tgl Service Jatuh Tempo</label>
-            <input type="date" id="f-service-date">
-          </div>
-          <div class="form-field">
-            <label>Kilometer Saat Ini</label>
-            <input type="number" id="f-km" placeholder="45000">
-          </div>
+          <div class="form-field"><label>Tgl Service Jatuh Tempo</label><input type="date" id="f-service-date"></div>
+          <div class="form-field"><label>Kilometer</label><input type="number" id="f-km"></div>
         </div>
       </div>
-
-      <!-- SECTION 4: PENANGGUNG JAWAB -->
       <div class="form-section">
-        <div class="form-section-title">
-          <span class="form-section-num">4</span>
-          Penanggung Jawab
-        </div>
+        <div class="form-section-title"><span class="form-section-num">4</span>Penanggung Jawab</div>
         <div class="form-grid">
-          <div class="form-field span-2">
-            <label>Nama Penanggung Jawab <span class="req">*</span></label>
-            <input type="text" id="f-pj" placeholder="Rina Pratiwi">
-          </div>
-          <div class="form-field">
-            <label>No. HP / WhatsApp <span class="req">*</span></label>
-            <input type="text" id="f-hp" placeholder="081234560001">
-          </div>
-          <div class="form-field">
-            <label>Username Telegram (opsional)</label>
-            <input type="text" id="f-tg" placeholder="@username">
-          </div>
-          <div class="form-field span-2">
-            <label>Telegram Chat ID <span style="color:var(--info);font-size:10px;">(untuk notifikasi otomatis)</span></label>
-            <input type="text" id="f-tg-chat-id" placeholder="Contoh: 123456789">
-            <small style="font-size:10px;color:var(--text-mute);margin-top:4px;">PJ harus chat bot @SimopasBot dulu, lalu copy Chat ID dari pesan bot. <a href="start-bot.html" target="_blank" style="color:var(--accent);">Lihat panduan</a></small>
-          </div>
+          <div class="form-field span-2"><label>Nama Penanggung Jawab <span class="req">*</span></label><input type="text" id="f-pj"></div>
+          <div class="form-field"><label>No. HP / WhatsApp <span class="req">*</span></label><input type="text" id="f-hp"></div>
+          <div class="form-field"><label>Username Telegram</label><input type="text" id="f-tg" placeholder="@username"></div>
+          <div class="form-field span-2"><label>Telegram Chat ID <span style="color:var(--info);font-size:10px;">(untuk notifikasi otomatis)</span></label><input type="text" id="f-tg-chat-id" placeholder="Contoh: 123456789"><small>PJ harus chat bot Telegram dulu untuk dapatkan Chat ID. <a href="start-bot.html" target="_blank">Lihat panduan</a></small></div>
         </div>
       </div>
-
-      <!-- SECTION 5: NOTIFIKASI -->
       <div class="form-section">
-        <div class="form-section-title">
-          <span class="form-section-num">5</span>
-          Pengaturan Pengingat
-        </div>
-        <div class="toggle-group">
-          <label class="toggle-card checked" onclick="toggleNotif(this, 'tg')">
-            <input type="checkbox" id="f-notif-tg" checked>
-            <div class="toggle-icon tg">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
-            </div>
-            <div class="toggle-info">
-              <strong>Telegram Bot</strong>
-              <span>H-30, H-14, H-7, H-1</span>
-            </div>
-          </label>
-          <label class="toggle-card checked" onclick="toggleNotif(this, 'wa')">
-            <input type="checkbox" id="f-notif-wa" checked>
-            <div class="toggle-icon wa">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-            </div>
-            <div class="toggle-info">
-              <strong>WhatsApp</strong>
-              <span>H-30, H-14, H-7, H-1</span>
-            </div>
-          </label>
-        </div>
+        <div class="form-section-title"><span class="form-section-num">5</span>Pengaturan Pengingat</div>
+        <label class="toggle-card checked" id="toggleNotif">
+          <input type="checkbox" id="f-notif-tg" checked>
+          <div class="toggle-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg></div>
+          <div class="toggle-info"><strong>Pengingat Telegram</strong><span>Aktifkan notifikasi otomatis H-30, H-14, H-7, H-1, hari-H</span></div>
+        </label>
       </div>
-
     </div>
     <div class="modal-footer">
-      <span class="modal-footer-info">* WAJIB DIISI</span>
+      <span style="font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;">* WAJIB DIISI</span>
       <div style="display:flex;gap:8px;">
         <button class="btn" onclick="closeModal()">Batal</button>
-        <button class="btn btn-primary" onclick="saveVehicle()">Simpan Kendaraan</button>
+        <button class="btn btn-primary" onclick="saveVehicle()">Simpan</button>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- DETAIL PANEL -->
-<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
-<div class="detail-panel" id="detailPanel">
-  <div class="detail-header">
-    <h2 style="font-family:'Instrument Serif',serif;font-size:24px;font-weight:400;">Detail Kendaraan</h2>
-    <button class="modal-close" onclick="closeDetail()">×</button>
-  </div>
-  <div class="detail-body" id="detailBody"></div>
-  <div class="detail-footer">
-    <button class="btn" style="flex:1;" onclick="closeDetail()">Tutup</button>
-    <button class="btn btn-primary" style="flex:1;" id="btnSendNotif">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      Kirim Pengingat
-    </button>
   </div>
 </div>
 
 <div class="toast-container" id="toastContainer"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
 <script>
-// ============= DATA =============
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-
-const ORIGIN_LABELS = {
-  ditjenim: 'Ditjenim',
-  kanim_sampit: 'Kanim Sampit',
-  kanim_pky: 'Kanim Palangkaraya',
-  kanim_kobar: 'Kanim Kobar',
-  kanwil: 'Kanwil Kemenkum'
-};
-
 let vehicles = [];
+let editingId = null;
+let searchTerm = '';
 
-// ============= SUPABASE INIT =============
-const cfg = window.SIMOPAS_CONFIG || {};
-if (!cfg.SUPABASE_URL || cfg.SUPABASE_URL === 'GANTI_DENGAN_URL_SUPABASE_KAMU') {
-  alert('Setup belum lengkap! Edit file config.js dengan kredensial Supabase. Lihat tutorial Bagian 2.');
-}
-const supabaseClient = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-
-// Helper: snake_case (DB) <-> camelCase (UI)
-function dbToUi(row) {
-  return {
-    id: row.id,
-    jenis: row.jenis,
-    type: row.type,
-    plate: row.plate,
-    asal: row.asal,
-    stnk: row.stnk,
-    stnkDate: row.stnk_date,
-    noPajak: row.no_pajak,
-    pajakDate: row.pajak_date,
-    serviceDate: row.service_date,
-    km: row.km || 0,
-    kmMax: row.km_max || 10000,
-    pj: row.pj,
-    hp: row.hp,
-    tg: row.tg,
-    telegramChatId: row.telegram_chat_id,
-    notif: { tg: !!row.notif_tg, wa: !!row.notif_wa },
-    lastSent: row.last_sent,
-  };
-}
-
-function uiToDb(v) {
-  return {
-    jenis: v.jenis,
-    type: v.type,
-    plate: v.plate,
-    asal: v.asal,
-    stnk: v.stnk || null,
-    stnk_date: v.stnkDate || null,
-    no_pajak: v.noPajak || null,
-    pajak_date: v.pajakDate,
-    service_date: v.serviceDate || null,
-    km: v.km || 0,
-    km_max: v.kmMax || 10000,
-    pj: v.pj,
-    hp: v.hp,
-    tg: v.tg || null,
-    telegram_chat_id: v.telegramChatId || null,
-    notif_tg: !!(v.notif && v.notif.tg),
-    notif_wa: !!(v.notif && v.notif.wa),
-    last_sent: v.lastSent || null,
-  };
-}
-
-// ============= AUTH CHECK & USER INFO =============
-async function checkAuth() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) {
-    window.location.href = 'index.html';
-    return null;
-  }
-
-  const user = session.user;
-  const email = user.email;
-  const name = (user.user_metadata && user.user_metadata.name) || email.split('@')[0];
-  const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-
-  document.getElementById('userName').textContent = name;
-  document.getElementById('userAvatar').textContent = initials;
-  document.getElementById('userRole').textContent = email;
-
-  return user;
-}
-
-document.getElementById('btnLogout').addEventListener('click', async () => {
-  if (!confirm('Yakin mau logout?')) return;
-  await supabaseClient.auth.signOut();
-  window.location.href = 'index.html';
+document.getElementById('toggleNotif').addEventListener('click', function(e) {
+  setTimeout(() => {
+    const cb = document.getElementById('f-notif-tg');
+    this.classList.toggle('checked', cb.checked);
+  }, 10);
 });
 
-// ============= LOAD VEHICLES FROM SUPABASE =============
 async function loadVehicles() {
-  const { data, error } = await supabaseClient
-    .from('kendaraan')
-    .select('*')
-    .order('pajak_date', { ascending: true });
-
-  if (error) {
-    console.error('Error loading vehicles:', error);
-    toast('Gagal memuat data', error.message, 'danger');
-    return;
-  }
-
+  const { data, error } = await supabaseClient.from('kendaraan').select('*').order('pajak_date', { ascending: true });
+  if (error) { toast('Gagal memuat', error.message, 'danger'); return; }
   vehicles = (data || []).map(dbToUi);
   render();
 }
 
-let currentFilter = 'all';
-let searchTerm = '';
-let editingId = null;
-let detailId = null;
-
-// ============= HELPERS =============
-function daysUntil(dateStr) {
-  if (!dateStr) return null;
-  const due = new Date(dateStr);
-  const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-  return diff;
-}
-
-function getStatus(days) {
-  if (days === null) return 'unknown';
-  if (days < 0) return 'expired';
-  if (days <= 30) return 'warning';
-  return 'active';
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function formatDays(days) {
-  if (days === null) return '-';
-  if (days < 0) return `${Math.abs(days)} hari lalu`;
-  if (days === 0) return 'Hari ini';
-  if (days === 1) return 'Besok';
-  return `${days} hari`;
-}
-
-function formatNumber(n) {
-  return n.toLocaleString('id-ID');
-}
-
-function toast(title, msg, type = 'success') {
-  const c = document.getElementById('toastContainer');
-  const icons = {
-    success: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>',
-    warning: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-    danger: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
-    info: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
-  };
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `
-    <div class="toast-icon">${icons[type]}</div>
-    <div class="toast-content"><strong>${title}</strong><span>${msg}</span></div>
-  `;
-  c.appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; setTimeout(() => t.remove(), 300); }, 3500);
-}
-
-// ============= RENDER =============
 function getKmStatus(km, kmMax) {
   const pct = (km / kmMax) * 100;
   if (pct >= 95) return 'danger';
@@ -1668,15 +259,11 @@ function getKmStatus(km, kmMax) {
 }
 
 function render() {
-  // Counts
   const total = vehicles.length;
   const active = vehicles.filter(v => getStatus(daysUntil(v.pajakDate)) === 'active').length;
   const warning = vehicles.filter(v => getStatus(daysUntil(v.pajakDate)) === 'warning').length;
   const expired = vehicles.filter(v => getStatus(daysUntil(v.pajakDate)) === 'expired').length;
-  const service = vehicles.filter(v => {
-    const d = daysUntil(v.serviceDate);
-    return d !== null && d >= 0 && d <= 14;
-  }).length;
+  const service = vehicles.filter(v => { const d = daysUntil(v.serviceDate); return d !== null && d >= 0 && d <= 14; }).length;
 
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statActive').textContent = active;
@@ -1684,174 +271,72 @@ function render() {
   document.getElementById('statExpired').textContent = expired;
   document.getElementById('statService').textContent = service;
 
-  document.getElementById('cAll').textContent = total;
-  document.getElementById('cActive').textContent = active;
-  document.getElementById('cWarning').textContent = warning;
-  document.getElementById('cExpired').textContent = expired;
-  document.getElementById('cService').textContent = service;
-
-  // Filter
-  let filtered = vehicles.filter(v => {
-    const status = getStatus(daysUntil(v.pajakDate));
-    if (currentFilter === 'service') {
-      const d = daysUntil(v.serviceDate);
-      if (d === null || d < 0 || d > 14) return false;
-    } else if (currentFilter !== 'all' && status !== currentFilter) return false;
-
-    if (searchTerm) {
-      const t = searchTerm.toLowerCase();
-      return v.plate.toLowerCase().includes(t) ||
-             v.pj.toLowerCase().includes(t) ||
-             v.stnk.includes(t) ||
-             v.hp.includes(t) ||
-             v.type.toLowerCase().includes(t);
-    }
-    return true;
-  });
-
+  let filtered = vehicles;
+  if (searchTerm) {
+    const t = searchTerm.toLowerCase();
+    filtered = vehicles.filter(v =>
+      v.plate.toLowerCase().includes(t) || v.pj.toLowerCase().includes(t) ||
+      (v.stnk && v.stnk.includes(t)) || (v.hp && v.hp.includes(t)) || v.type.toLowerCase().includes(t)
+    );
+  }
   filtered.sort((a, b) => daysUntil(a.pajakDate) - daysUntil(b.pajakDate));
 
   document.getElementById('tableMeta').textContent = `MENAMPILKAN ${filtered.length} DARI ${total} KENDARAAN`;
 
   const tbody = document.getElementById('tableBody');
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:60px;color:var(--text-mute);"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:0.4;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><br>Tidak ada data ditemukan</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><h3>Tidak ada data</h3><p>Klik "Tambah Kendaraan" untuk mulai</p></td></tr>`;
+    document.getElementById('mobileCards').innerHTML = '';
     return;
   }
 
   tbody.innerHTML = filtered.map((v, idx) => {
     const days = daysUntil(v.pajakDate);
     const status = getStatus(days);
-    const serviceDays = daysUntil(v.serviceDate);
-    const serviceStatus = getStatus(serviceDays);
     const kmStatus = getKmStatus(v.km, v.kmMax);
     const kmPct = Math.min(100, (v.km / v.kmMax) * 100);
-
     const statusClass = status === 'active' ? 'status-active' : status === 'warning' ? 'status-warning' : 'status-expired';
     const statusText = status === 'active' ? 'Aktif' : status === 'warning' ? 'Segera' : 'Mati';
     const daysClass = status === 'active' ? 'success' : status === 'warning' ? 'warning' : 'danger';
-
     return `
-      <tr class="row-clickable" onclick="openDetail(${v.id})">
+      <tr>
         <td style="color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:11px;">${String(idx + 1).padStart(2, '0')}</td>
         <td><span class="plate">${v.plate}</span></td>
-        <td>
-          <div class="cell-stack">
-            <span class="cell-primary">${v.type}</span>
-            <span class="cell-secondary">${v.jenis.toUpperCase()}</span>
-          </div>
-        </td>
+        <td><div class="cell-stack"><span class="cell-primary">${v.type}</span><span class="cell-secondary">${v.jenis.toUpperCase()}</span></div></td>
         <td><span class="origin-tag">${ORIGIN_LABELS[v.asal]}</span></td>
-        <td>
-          <div class="cell-stack">
-            <span class="cell-primary" style="font-size:12px;">${formatDate(v.stnkDate)}</span>
-            <span class="cell-secondary">STNK ${v.stnk}</span>
-          </div>
-        </td>
-        <td>
-          <div class="cell-stack">
-            <span class="cell-primary" style="font-size:12px;">${formatDate(v.pajakDate)}</span>
-            <span class="cell-secondary">PJK ${v.noPajak}</span>
-          </div>
-        </td>
+        <td><div class="cell-stack"><span class="cell-primary" style="font-size:12px;">${formatDate(v.pajakDate)}</span><span class="cell-secondary">PJK ${v.noPajak || '-'}</span></div></td>
         <td><span class="days-cell ${daysClass}">${formatDays(days)}</span></td>
-        <td>
-          <div class="cell-stack">
-            <span class="cell-secondary" style="color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;">${formatNumber(v.km)} km</span>
-            <div class="km-bar"><div class="km-bar-fill ${kmStatus}" style="width:${kmPct}%"></div></div>
-          </div>
-        </td>
-        <td>
-          <div class="cell-stack">
-            <span class="cell-primary">${v.pj}</span>
-            <span class="cell-secondary">${v.hp}</span>
-          </div>
-        </td>
-        <td>
-          <div class="notif-icons">
-            <div class="notif-icon tg ${v.notif.tg ? 'active' : ''}" title="Telegram">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
-            </div>
-            <div class="notif-icon wa ${v.notif.wa ? 'active' : ''}" title="WhatsApp">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884"/></svg>
-            </div>
-          </div>
-        </td>
+        <td><div class="cell-stack"><span class="cell-secondary" style="color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;">${formatNumber(v.km)} km</span><div class="km-bar"><div class="km-bar-fill ${kmStatus}" style="width:${kmPct}%"></div></div></div></td>
+        <td><div class="cell-stack"><span class="cell-primary">${v.pj}</span><span class="cell-secondary">${v.hp}</span></div></td>
         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-        <td>
-          <div class="actions-cell" onclick="event.stopPropagation();">
-            <button class="icon-btn" title="Edit" onclick="openEditModal(${v.id})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
-            </button>
-            <button class="icon-btn" title="Kirim Notif" onclick="sendNotif(${v.id})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
-            <button class="icon-btn danger" title="Hapus" onclick="deleteVehicle(${v.id})">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
-          </div>
-        </td>
+        <td><div class="actions-cell">
+          <button class="icon-btn" title="Edit" onclick="openEditModal(${v.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>
+          <button class="icon-btn" title="Kirim Notif" onclick="sendNotif(${v.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+          <button class="icon-btn danger" title="Hapus" onclick="deleteVehicle(${v.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        </div></td>
       </tr>
     `;
   }).join('');
 
-  // Mobile cards
-  const mc = document.getElementById('mobileCards');
-  mc.innerHTML = filtered.map(v => {
+  document.getElementById('mobileCards').innerHTML = filtered.map(v => {
     const days = daysUntil(v.pajakDate);
     const status = getStatus(days);
     const statusClass = status === 'active' ? 'status-active' : status === 'warning' ? 'status-warning' : 'status-expired';
     const statusText = status === 'active' ? 'AKTIF' : status === 'warning' ? 'SEGERA' : 'MATI';
     const daysClass = status === 'active' ? 'success' : status === 'warning' ? 'warning' : 'danger';
-    const cardClass = status === 'expired' ? 'urgent' : status === 'warning' ? 'warn' : '';
-
     return `
-      <div class="mobile-card ${cardClass}" onclick="openDetail(${v.id})">
+      <div class="mobile-card" onclick="openEditModal(${v.id})">
         <div class="mc-top">
-          <div>
-            <div class="mc-title">${v.type}</div>
-            <div class="mc-sub">${v.jenis.toUpperCase()} • ${ORIGIN_LABELS[v.asal]}</div>
-          </div>
+          <div><div class="mc-title">${v.type}</div><div class="mc-sub">${v.jenis.toUpperCase()} • ${ORIGIN_LABELS[v.asal]}</div></div>
           <span class="plate">${v.plate}</span>
         </div>
-        <div class="mc-stats">
-          <div>
-            <div class="mc-stat-label">Pajak Tahunan</div>
-            <div class="mc-stat-value">${formatDate(v.pajakDate)}</div>
-          </div>
-          <div>
-            <div class="mc-stat-label">Sisa Waktu</div>
-            <div class="mc-stat-value days-cell ${daysClass}">${formatDays(days)}</div>
-          </div>
-        </div>
-        <div class="mc-footer">
-          <div>
-            <div class="mc-pj">${v.pj}</div>
-            <div class="mc-pj-meta">${v.hp}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div class="notif-icons">
-              <div class="notif-icon tg ${v.notif.tg ? 'active' : ''}">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
-              </div>
-              <div class="notif-icon wa ${v.notif.wa ? 'active' : ''}">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413"/></svg>
-              </div>
-            </div>
-            <span class="status-badge ${statusClass}" style="font-size:9px;">${statusText}</span>
-          </div>
-        </div>
+        <div class="mc-row"><div class="cell-secondary">Pajak: ${formatDate(v.pajakDate)}</div><span class="days-cell ${daysClass}">${formatDays(days)}</span></div>
+        <div class="mc-row"><div class="cell-secondary">${v.pj}</div><span class="status-badge ${statusClass}">${statusText}</span></div>
       </div>
     `;
-  }).join('') || `<div style="text-align:center;padding:40px;color:var(--text-mute);">Tidak ada data</div>`;
+  }).join('');
 }
 
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sidebarOverlay').classList.toggle('show');
-}
-
-// ============= MODAL ADD/EDIT =============
 function openAddModal() {
   editingId = null;
   document.getElementById('modalTitle').innerHTML = 'Tambah <em>Kendaraan</em>';
@@ -1860,47 +345,34 @@ function openAddModal() {
   document.getElementById('f-jenis').value = 'Motor';
   document.getElementById('f-asal').value = 'ditjenim';
   document.getElementById('f-notif-tg').checked = true;
-  document.getElementById('f-notif-wa').checked = true;
-  document.querySelectorAll('.toggle-card').forEach(t => t.classList.add('checked'));
+  document.getElementById('toggleNotif').classList.add('checked');
   document.getElementById('modal').classList.add('show');
 }
 
 function openEditModal(id) {
-  const v = vehicles.find(x => x.id === id);
-  if (!v) return;
+  const v = vehicles.find(x => x.id === id); if (!v) return;
   editingId = id;
   document.getElementById('modalTitle').innerHTML = 'Edit <em>Kendaraan</em>';
   document.getElementById('f-jenis').value = v.jenis;
   document.getElementById('f-type').value = v.type;
   document.getElementById('f-plate').value = v.plate;
   document.getElementById('f-asal').value = v.asal;
-  document.getElementById('f-stnk').value = v.stnk;
-  document.getElementById('f-stnk-date').value = v.stnkDate;
-  document.getElementById('f-no-pajak').value = v.noPajak;
-  document.getElementById('f-pajak-date').value = v.pajakDate;
-  document.getElementById('f-service-date').value = v.serviceDate;
-  document.getElementById('f-km').value = v.km;
+  document.getElementById('f-stnk').value = v.stnk || '';
+  document.getElementById('f-stnk-date').value = v.stnkDate || '';
+  document.getElementById('f-no-pajak').value = v.noPajak || '';
+  document.getElementById('f-pajak-date').value = v.pajakDate || '';
+  document.getElementById('f-service-date').value = v.serviceDate || '';
+  document.getElementById('f-km').value = v.km || '';
   document.getElementById('f-pj').value = v.pj;
   document.getElementById('f-hp').value = v.hp;
   document.getElementById('f-tg').value = v.tg || '';
   document.getElementById('f-tg-chat-id').value = v.telegramChatId || '';
-  document.getElementById('f-notif-tg').checked = v.notif.tg;
-  document.getElementById('f-notif-wa').checked = v.notif.wa;
-  document.querySelectorAll('.toggle-card')[0].classList.toggle('checked', v.notif.tg);
-  document.querySelectorAll('.toggle-card')[1].classList.toggle('checked', v.notif.wa);
+  document.getElementById('f-notif-tg').checked = v.notifTg !== false;
+  document.getElementById('toggleNotif').classList.toggle('checked', v.notifTg !== false);
   document.getElementById('modal').classList.add('show');
 }
 
-function closeModal() {
-  document.getElementById('modal').classList.remove('show');
-}
-
-function toggleNotif(el, type) {
-  setTimeout(() => {
-    const checked = document.getElementById(`f-notif-${type}`).checked;
-    el.classList.toggle('checked', checked);
-  }, 10);
-}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
 
 async function saveVehicle() {
   const plate = document.getElementById('f-plate').value.trim().toUpperCase();
@@ -1908,309 +380,75 @@ async function saveVehicle() {
   const pj = document.getElementById('f-pj').value.trim();
   const hp = document.getElementById('f-hp').value.trim();
   const pajakDate = document.getElementById('f-pajak-date').value;
-
   if (!plate || !type || !pj || !hp || !pajakDate) {
-    toast('Data tidak lengkap', 'Mohon lengkapi field yang wajib diisi (*)', 'warning');
-    return;
+    toast('Data tidak lengkap', 'Mohon lengkapi field yang wajib (*)', 'warning'); return;
   }
-
+  const km = parseInt(document.getElementById('f-km').value) || 0;
   const data = {
-    jenis: document.getElementById('f-jenis').value,
-    type: type,
-    plate: plate,
+    jenis: document.getElementById('f-jenis').value, type, plate,
     asal: document.getElementById('f-asal').value,
     stnk: document.getElementById('f-stnk').value.trim(),
     stnkDate: document.getElementById('f-stnk-date').value,
     noPajak: document.getElementById('f-no-pajak').value.trim(),
-    pajakDate: pajakDate,
-    serviceDate: document.getElementById('f-service-date').value,
-    km: parseInt(document.getElementById('f-km').value) || 0,
-    kmMax: Math.round((parseInt(document.getElementById('f-km').value) || 0) * 1.3) || 10000,
-    pj: pj,
-    hp: hp,
-    tg: document.getElementById('f-tg').value.trim(),
+    pajakDate, serviceDate: document.getElementById('f-service-date').value,
+    km, kmMax: Math.round(km * 1.3) || 10000,
+    pj, hp, tg: document.getElementById('f-tg').value.trim(),
     telegramChatId: document.getElementById('f-tg-chat-id').value.trim(),
-    notif: {
-      tg: document.getElementById('f-notif-tg').checked,
-      wa: document.getElementById('f-notif-wa').checked
-    },
-    lastSent: null
+    notifTg: document.getElementById('f-notif-tg').checked, lastSent: null
   };
-
-  const dbData = uiToDb(data);
-
   try {
+    const dbData = uiToDb(data);
     if (editingId) {
-      const { error } = await supabaseClient
-        .from('kendaraan')
-        .update(dbData)
-        .eq('id', editingId);
+      const { error } = await supabaseClient.from('kendaraan').update(dbData).eq('id', editingId);
       if (error) throw error;
-      toast('Berhasil diperbarui', `${plate} telah diupdate`, 'success');
+      toast('Berhasil diperbarui', `${plate} telah diupdate`);
     } else {
-      const { error } = await supabaseClient
-        .from('kendaraan')
-        .insert(dbData);
+      const { error } = await supabaseClient.from('kendaraan').insert(dbData);
       if (error) throw error;
-      toast('Berhasil ditambahkan', `${plate} telah didaftarkan`, 'success');
+      toast('Berhasil ditambahkan', `${plate} telah didaftarkan`);
     }
-
-    closeModal();
-    await loadVehicles();
-  } catch (err) {
-    console.error('Save error:', err);
-    toast('Gagal menyimpan', err.message || 'Coba lagi', 'danger');
-  }
+    closeModal(); await loadVehicles();
+  } catch (err) { toast('Gagal menyimpan', err.message, 'danger'); }
 }
 
 async function deleteVehicle(id) {
-  const v = vehicles.find(x => x.id === id);
-  if (!v) return;
+  const v = vehicles.find(x => x.id === id); if (!v) return;
   if (!confirm(`Hapus data kendaraan ${v.plate}?`)) return;
-
   try {
-    const { error } = await supabaseClient
-      .from('kendaraan')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabaseClient.from('kendaraan').delete().eq('id', id);
     if (error) throw error;
-    toast('Data dihapus', `${v.plate} telah dihapus dari sistem`, 'danger');
+    toast('Data dihapus', `${v.plate} telah dihapus`, 'danger');
     await loadVehicles();
-  } catch (err) {
-    console.error('Delete error:', err);
-    toast('Gagal menghapus', err.message || 'Coba lagi', 'danger');
-  }
+  } catch (err) { toast('Gagal menghapus', err.message, 'danger'); }
 }
 
 async function sendNotif(id) {
-  const v = vehicles.find(x => x.id === id);
-  if (!v) return;
-
-  if (!v.notif.tg) {
-    toast('Notifikasi Telegram tidak aktif', 'Aktifkan dulu di edit kendaraan', 'warning');
-    return;
-  }
-
-  if (!v.telegramChatId) {
-    toast('Chat ID belum diisi', `${v.pj} belum chat bot. Lihat panduan di menu start-bot.html`, 'warning');
-    return;
-  }
-
-  // Tanya tipe yang mau dikirim
-  const tipe = prompt(`Kirim pengingat apa untuk ${v.plate}?\n\nKetik:\n• pajak — untuk pajak tahunan\n• stnk — untuk STNK 5 tahun\n• service — untuk service berkala`, 'pajak');
+  const v = vehicles.find(x => x.id === id); if (!v) return;
+  if (!v.notifTg) { toast('Notifikasi tidak aktif', 'Aktifkan di edit kendaraan', 'warning'); return; }
+  if (!v.telegramChatId) { toast('Chat ID kosong', `${v.pj} belum chat bot`, 'warning'); return; }
+  const tipe = prompt(`Kirim pengingat apa untuk ${v.plate}?\n\nKetik: pajak, stnk, atau service`, 'pajak');
   if (!tipe) return;
-  if (!['pajak', 'stnk', 'service'].includes(tipe.toLowerCase())) {
-    toast('Tipe salah', 'Hanya pajak, stnk, atau service', 'warning');
-    return;
-  }
-
-  toast('Mengirim pengingat...', `Via Telegram ke ${v.pj}`, 'info');
-
+  if (!['pajak','stnk','service'].includes(tipe.toLowerCase())) { toast('Tipe salah', '', 'warning'); return; }
+  toast('Mengirim...', `Ke ${v.pj}`, 'info');
   try {
     const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) {
-      toast('Sesi habis', 'Silakan login ulang', 'danger');
-      return;
-    }
-
     const res = await fetch('/api/test-send', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
       body: JSON.stringify({ kendaraan_id: id, tipe: tipe.toLowerCase() }),
     });
-
     const result = await res.json();
-
-    if (result.success) {
-      toast('Pengingat terkirim', `Via Telegram ke ${v.pj}`, 'success');
-      await loadVehicles();
-      if (detailId === id) openDetail(id);
-    } else {
-      toast('Gagal mengirim', result.error || 'Error tidak diketahui', 'danger');
-    }
-  } catch (err) {
-    console.error('Send notif error:', err);
-    toast('Gagal mengirim', err.message || 'Periksa koneksi', 'danger');
-  }
+    if (result.success) { toast('Terkirim', `Ke ${v.pj}`); await loadVehicles(); }
+    else { toast('Gagal', result.error, 'danger'); }
+  } catch (err) { toast('Gagal', err.message, 'danger'); }
 }
 
-// ============= DETAIL PANEL =============
-function openDetail(id) {
-  const v = vehicles.find(x => x.id === id);
-  if (!v) return;
-  detailId = id;
+document.getElementById('searchInput').oninput = (e) => { searchTerm = e.target.value; render(); };
+document.getElementById('modal').onclick = (e) => { if (e.target.id === 'modal') closeModal(); };
 
-  const days = daysUntil(v.pajakDate);
-  const stnkDays = daysUntil(v.stnkDate);
-  const serviceDays = daysUntil(v.serviceDate);
-  const kmPct = Math.min(100, (v.km / v.kmMax) * 100);
-  const kmStatus = getKmStatus(v.km, v.kmMax);
-
-  const pajakColor = days < 0 ? 'var(--danger)' : days <= 30 ? 'var(--warning)' : 'var(--success)';
-  const pajakBg = days < 0 ? 'rgba(255,85,102,0.12)' : days <= 30 ? 'rgba(255,159,67,0.12)' : 'rgba(46,229,157,0.12)';
-
-  const stnkColor = stnkDays < 0 ? 'var(--danger)' : stnkDays <= 90 ? 'var(--warning)' : 'var(--success)';
-  const stnkBg = stnkDays < 0 ? 'rgba(255,85,102,0.12)' : stnkDays <= 90 ? 'rgba(255,159,67,0.12)' : 'rgba(46,229,157,0.12)';
-
-  const serviceColor = serviceDays === null ? 'var(--text-mute)' : serviceDays < 0 ? 'var(--danger)' : serviceDays <= 14 ? 'var(--warning)' : 'var(--success)';
-  const serviceBg = serviceDays === null ? 'rgba(90,100,122,0.12)' : serviceDays < 0 ? 'rgba(255,85,102,0.12)' : serviceDays <= 14 ? 'rgba(255,159,67,0.12)' : 'rgba(46,229,157,0.12)';
-
-  document.getElementById('detailBody').innerHTML = `
-    <div class="detail-hero">
-      <div class="detail-hero-top">
-        <div>
-          <div class="detail-vehicle-name">${v.type}</div>
-          <div class="detail-vehicle-meta">${v.jenis} • <span class="origin-tag" style="margin-left:4px;">${ORIGIN_LABELS[v.asal]}</span></div>
-        </div>
-        <span class="plate" style="font-size:13px;padding:6px 12px;">${v.plate}</span>
-      </div>
-      <div class="detail-info-grid">
-        <div>
-          <div class="info-item-label">No. STNK</div>
-          <div class="info-item-value" style="font-family:'JetBrains Mono',monospace;">${v.stnk || '-'}</div>
-        </div>
-        <div>
-          <div class="info-item-label">No. Pajak</div>
-          <div class="info-item-value" style="font-family:'JetBrains Mono',monospace;">${v.noPajak || '-'}</div>
-        </div>
-        <div>
-          <div class="info-item-label">Kilometer</div>
-          <div class="info-item-value">${formatNumber(v.km)} km</div>
-          <div class="km-bar" style="width:100%;margin-top:6px;"><div class="km-bar-fill ${kmStatus}" style="width:${kmPct}%"></div></div>
-        </div>
-        <div>
-          <div class="info-item-label">Service Limit</div>
-          <div class="info-item-value">${formatNumber(v.kmMax)} km</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="detail-section">
-      <div class="detail-section-title">Status Jatuh Tempo</div>
-
-      <div class="countdown-card">
-        <div class="countdown-icon" style="background:${pajakBg};color:${pajakColor};">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        </div>
-        <div class="countdown-content">
-          <div class="countdown-label">Pajak Tahunan</div>
-          <div class="countdown-date">${formatDate(v.pajakDate)}</div>
-          <div class="countdown-status" style="color:${pajakColor};">${formatDays(days).toUpperCase()}</div>
-        </div>
-      </div>
-
-      <div class="countdown-card">
-        <div class="countdown-icon" style="background:${stnkBg};color:${stnkColor};">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        </div>
-        <div class="countdown-content">
-          <div class="countdown-label">STNK (Pajak 5 Tahun)</div>
-          <div class="countdown-date">${formatDate(v.stnkDate)}</div>
-          <div class="countdown-status" style="color:${stnkColor};">${formatDays(stnkDays).toUpperCase()}</div>
-        </div>
-      </div>
-
-      <div class="countdown-card">
-        <div class="countdown-icon" style="background:${serviceBg};color:${serviceColor};">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-        </div>
-        <div class="countdown-content">
-          <div class="countdown-label">Service Berkala</div>
-          <div class="countdown-date">${formatDate(v.serviceDate)}</div>
-          <div class="countdown-status" style="color:${serviceColor};">${formatDays(serviceDays).toUpperCase()}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="detail-section">
-      <div class="detail-section-title">Penanggung Jawab</div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent-2),var(--purple));display:grid;place-items:center;font-weight:700;color:white;">${v.pj.split(' ').map(n=>n[0]).slice(0,2).join('')}</div>
-          <div>
-            <div style="font-weight:600;font-size:14px;">${v.pj}</div>
-            <div style="font-size:11px;color:var(--text-mute);font-family:'JetBrains Mono',monospace;">PJ KENDARAAN</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <div style="flex:1;display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-elev);border-radius:8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--success)"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/></svg>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">${v.hp}</span>
-          </div>
-          ${v.tg ? `<div style="flex:1;display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-elev);border-radius:8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--info)"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">${v.tg}</span>
-          </div>` : ''}
-        </div>
-      </div>
-    </div>
-
-    <div class="detail-section">
-      <div class="detail-section-title">Riwayat Pengingat</div>
-      <div class="timeline">
-        ${v.lastSent ? `
-          <div class="timeline-item sent">
-            <div class="timeline-date">${formatDate(v.lastSent).toUpperCase()}</div>
-            <div class="timeline-text">Pengingat terkirim via ${v.notif.tg ? 'Telegram' : ''} ${v.notif.tg && v.notif.wa ? '&' : ''} ${v.notif.wa ? 'WhatsApp' : ''}</div>
-          </div>
-        ` : ''}
-        <div class="timeline-item">
-          <div class="timeline-date">JADWAL OTOMATIS</div>
-          <div class="timeline-text">H-30, H-14, H-7, H-1 sebelum jatuh tempo</div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('detailOverlay').classList.add('show');
-  document.getElementById('detailPanel').classList.add('show');
-  document.getElementById('btnSendNotif').onclick = () => sendNotif(id);
-}
-
-function closeDetail() {
-  document.getElementById('detailOverlay').classList.remove('show');
-  document.getElementById('detailPanel').classList.remove('show');
-  detailId = null;
-}
-
-// ============= EVENTS =============
-document.querySelectorAll('.pill').forEach(p => {
-  p.onclick = () => {
-    document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
-    p.classList.add('active');
-    currentFilter = p.dataset.filter;
-    render();
-  };
-});
-
-document.getElementById('searchInput').oninput = (e) => {
-  searchTerm = e.target.value;
-  render();
-};
-
-document.getElementById('modal').onclick = (e) => {
-  if (e.target.id === 'modal') closeModal();
-};
-
-// Toggle notif card click handler
-document.querySelectorAll('.toggle-card').forEach((card, idx) => {
-  card.addEventListener('click', (e) => {
-    const cb = card.querySelector('input[type="checkbox"]');
-    cb.checked = !cb.checked;
-    card.classList.toggle('checked', cb.checked);
-    e.preventDefault();
-  });
-});
-
-// Initial: auth check then load
 (async function init() {
-  const user = await checkAuth();
-  if (user) {
-    await loadVehicles();
-  }
+  const user = await simopasInit('dashboard');
+  if (user) await loadVehicles();
 })();
 </script>
 

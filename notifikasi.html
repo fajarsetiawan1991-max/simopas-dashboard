@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifikasi — SIMOPAS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+.stat-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+.stat-value { font-family: 'Instrument Serif', serif; font-size: 36px; line-height: 1; }
+.stat-meta { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+
+.table-wrap { overflow-x: auto; }
+table { min-width: 900px; }
+
+.pesan-cell { max-width: 380px; }
+.pesan-preview { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; line-height: 1.4; max-height: 60px; overflow: hidden; position: relative; }
+.pesan-preview::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 20px; background: linear-gradient(transparent, var(--bg-card)); pointer-events: none; }
+
+.tipe-badge { display: inline-flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+.tipe-badge.pajak { background: rgba(255, 159, 67, 0.12); color: var(--warning); }
+.tipe-badge.stnk { background: rgba(111, 168, 255, 0.12); color: var(--info); }
+.tipe-badge.service { background: rgba(46, 229, 157, 0.12); color: var(--success); }
+
+@media (max-width: 1000px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 600px; max-height: 80vh; overflow-y: auto; }
+.modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.modal-header h2 { font-family: 'Instrument Serif', serif; font-size: 24px; }
+.modal-close { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; width: 32px; height: 32px; border-radius: 8px; }
+.modal-body { padding: 20px 24px; }
+.pesan-full { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="mobile-menu-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="page-title">
+        <h1>Log <em>Notifikasi</em></h1>
+        <p>Riwayat semua pengingat yang dikirim ke penanggung jawab</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" onclick="loadData()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card"><div class="stat-label">Total Terkirim</div><div class="stat-value" id="statTotal">0</div><div class="stat-meta">semua waktu</div></div>
+      <div class="stat-card"><div class="stat-label">Hari Ini</div><div class="stat-value" id="statToday">0</div><div class="stat-meta">pengingat dikirim</div></div>
+      <div class="stat-card"><div class="stat-label">Minggu Ini</div><div class="stat-value" id="statWeek">0</div><div class="stat-meta">7 hari terakhir</div></div>
+      <div class="stat-card"><div class="stat-label">Gagal Kirim</div><div class="stat-value" id="statFail" style="color:var(--danger);">0</div><div class="stat-meta">perlu dicek</div></div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <div class="pill active" data-filter="all" onclick="setFilter('all')">Semua <span class="pill-count" id="cAll">0</span></div>
+      <div class="pill" data-filter="pajak" onclick="setFilter('pajak')">Pajak <span class="pill-count" id="cPajak">0</span></div>
+      <div class="pill" data-filter="stnk" onclick="setFilter('stnk')">STNK <span class="pill-count" id="cStnk">0</span></div>
+      <div class="pill" data-filter="service" onclick="setFilter('service')">Service <span class="pill-count" id="cService">0</span></div>
+      <div class="pill" data-filter="failed" onclick="setFilter('failed')">Gagal <span class="pill-count" id="cFail">0</span></div>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Waktu</th><th>Kendaraan</th><th>Tipe</th><th>Hari</th><th>Channel</th><th>Status</th><th>Pesan</th></tr></thead>
+          <tbody id="tableBody"><tr><td colspan="7" class="loading"><div class="loading-spinner"></div>Memuat...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Detail Pesan</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+let logs = [];
+let currentFilter = 'all';
+
+async function loadData() {
+  const { data, error } = await supabaseClient
+    .from('notifikasi_log')
+    .select('*, kendaraan(plate, type, pj)')
+    .order('created_at', { ascending: false })
+    .limit(500);
+
+  if (error) { toast('Gagal memuat', error.message, 'danger'); return; }
+  logs = data || [];
+  render();
+}
+
+function render() {
+  const total = logs.length;
+  const todayStr = today.toISOString().split('T')[0];
+  const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const todayCount = logs.filter(l => l.created_at.startsWith(todayStr) && l.status === 'sent').length;
+  const weekCount = logs.filter(l => new Date(l.created_at) >= weekAgo && l.status === 'sent').length;
+  const failCount = logs.filter(l => l.status === 'failed').length;
+  const pajakCount = logs.filter(l => l.tipe === 'pajak').length;
+  const stnkCount = logs.filter(l => l.tipe === 'stnk').length;
+  const serviceCount = logs.filter(l => l.tipe === 'service').length;
+
+  document.getElementById('statTotal').textContent = logs.filter(l => l.status === 'sent').length;
+  document.getElementById('statToday').textContent = todayCount;
+  document.getElementById('statWeek').textContent = weekCount;
+  document.getElementById('statFail').textContent = failCount;
+  document.getElementById('cAll').textContent = total;
+  document.getElementById('cPajak').textContent = pajakCount;
+  document.getElementById('cStnk').textContent = stnkCount;
+  document.getElementById('cService').textContent = serviceCount;
+  document.getElementById('cFail').textContent = failCount;
+
+  let filtered = logs;
+  if (currentFilter === 'failed') filtered = logs.filter(l => l.status === 'failed');
+  else if (currentFilter !== 'all') filtered = logs.filter(l => l.tipe === currentFilter);
+
+  const tbody = document.getElementById('tableBody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h3>Belum ada notifikasi</h3><p>Log akan muncul saat ada pengingat dikirim</p></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(l => {
+    const k = l.kendaraan || {};
+    const statusClass = l.status === 'sent' ? 'status-active' : 'status-expired';
+    const statusText = l.status === 'sent' ? 'SUKSES' : 'GAGAL';
+    const hariLabel = l.hari_ke === 0 ? 'H' : l.hari_ke > 0 ? `H-${l.hari_ke}` : `H+${Math.abs(l.hari_ke)}`;
+    return `<tr class="row-clickable" onclick='showDetail(${JSON.stringify(l).replace(/'/g, "&#39;")})'>
+      <td><span class="cell-secondary">${formatDateTime(l.created_at)}</span></td>
+      <td><div class="cell-stack"><span class="plate">${k.plate || '-'}</span><span class="cell-secondary" style="margin-top:4px;">${k.type || ''} • ${k.pj || ''}</span></div></td>
+      <td><span class="tipe-badge ${l.tipe}">${l.tipe || '-'}</span></td>
+      <td><span class="cell-secondary" style="color:var(--text);">${hariLabel}</span></td>
+      <td><span class="cell-secondary" style="color:var(--info);">${l.channel}</span></td>
+      <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+      <td class="pesan-cell"><div class="pesan-preview">${(l.pesan || l.error_msg || '-').substring(0, 120)}...</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.pill').forEach(p => p.classList.toggle('active', p.dataset.filter === f));
+  render();
+}
+
+function showDetail(log) {
+  document.getElementById('modalBody').innerHTML = `
+    <div style="margin-bottom:16px;">
+      <div class="cell-secondary" style="margin-bottom:4px;">WAKTU</div>
+      <div style="font-weight:600;">${formatDateTime(log.created_at)}</div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div class="cell-secondary" style="margin-bottom:4px;">STATUS</div>
+      <span class="status-badge ${log.status === 'sent' ? 'status-active' : 'status-expired'}">${log.status === 'sent' ? 'BERHASIL' : 'GAGAL'}</span>
+    </div>
+    ${log.error_msg ? `<div style="margin-bottom:16px;"><div class="cell-secondary" style="margin-bottom:4px;color:var(--danger);">ERROR</div><div style="color:var(--danger);font-size:13px;">${log.error_msg}</div></div>` : ''}
+    <div>
+      <div class="cell-secondary" style="margin-bottom:4px;">PESAN LENGKAP</div>
+      <div class="pesan-full">${log.pesan || '(tidak ada pesan)'}</div>
+    </div>
+  `;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+document.getElementById('modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
+
+(async function init() {
+  const user = await simopasInit('notifikasi');
+  if (user) await loadData();
+})();
+</script>
+
+</body>
+</html>
