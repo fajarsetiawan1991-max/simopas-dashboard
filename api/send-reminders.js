@@ -1,14 +1,16 @@
-// API: Kirim Pengingat Harian (Telegram + Email)
+// API: Kirim Pengingat Harian (Telegram + Email via Gmail SMTP)
 // Dijalankan otomatis oleh Vercel Cron tiap hari jam 08:00 WIB
 
 import { createClient } from '@supabase/supabase-js';
+import nodemailer from 'nodemailer';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CRON_SECRET = process.env.CRON_SECRET;
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || 'SIMOPAS <onboarding@resend.dev>';
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+const FROM_NAME = process.env.FROM_NAME || 'SIMOPAS Kanim';
 
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
@@ -16,6 +18,18 @@ const ORIGIN_LABELS = {
   ditjenim: 'Ditjenim', kanim_sampit: 'Kanim Sampit', kanim_pky: 'Kanim Palangkaraya',
   kanim_kobar: 'Kanim Kobar', kanwil: 'Kanwil Kemenkum'
 };
+
+// Setup Gmail SMTP transporter (lazy init - cuma di-create kalau perlu)
+let mailer = null;
+function getMailer() {
+  if (mailer) return mailer;
+  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) return null;
+  mailer = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD }
+  });
+  return mailer;
+}
 
 function formatDate(d) { return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }); }
 
@@ -56,8 +70,7 @@ function buildEmailHTML(k, tipe, h, dueDate) {
 <div style="max-width:600px;margin:20px auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.05);">
 <div style="background:linear-gradient(135deg,#1E3A8A,#4338ca);padding:32px 24px;color:white;text-align:center;">
 <h1 style="margin:0;font-size:26px;">${t.icon} Pengingat ${t.label}</h1>
-<div style="margin-top:6px;font-size:13px;opacity:0.9;">SIMOPAS - Sistem Monitoring Kendaraan Dinas</div>
-</div>
+<div style="margin-top:6px;font-size:13px;opacity:0.9;">SIMOPAS - Sistem Monitoring Kendaraan Dinas</div></div>
 <div style="background:${uc};color:white;text-align:center;padding:12px;font-weight:700;font-size:15px;letter-spacing:1px;">⚠️ JATUH TEMPO ${u.label}</div>
 <div style="padding:32px 24px;color:#333;line-height:1.6;">
 <h2 style="margin:0 0 12px;font-size:18px;">Halo, ${k.pj}</h2>
@@ -107,18 +120,20 @@ async function sendTelegram(chatId, text) {
 }
 
 async function sendEmail(to, subject, html) {
-  if (!RESEND_API_KEY) return { success: false, error: 'RESEND_API_KEY belum di-set' };
+  const m = getMailer();
+  if (!m) return { success: false, error: 'GMAIL_USER atau GMAIL_APP_PASSWORD belum di-set di Vercel' };
   if (!to || !to.includes('@')) return { success: false, error: 'Email tidak valid' };
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, html }),
+    const info = await m.sendMail({
+      from: `"${FROM_NAME}" <${GMAIL_USER}>`,
+      to: to,
+      subject: subject,
+      html: html,
     });
-    const data = await res.json();
-    if (res.ok) return { success: true, id: data.id };
-    return { success: false, error: data.message || JSON.stringify(data) };
-  } catch (err) { return { success: false, error: err.message }; }
+    return { success: true, id: info.messageId };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 }
 
 export default async function handler(req, res) {
@@ -174,7 +189,7 @@ export default async function handler(req, res) {
           });
           if (r.success) results.sent_email++;
           else results.errors.push(`Email ${item.plate}: ${r.error}`);
-          await new Promise(r => setTimeout(r, 100));
+          await new Promise(r => setTimeout(r, 200)); // Gmail rate limit lebih ketat
         }
       }
 
@@ -212,7 +227,7 @@ export default async function handler(req, res) {
         if (admin.notif_email !== false && admin.email) {
           const r = await sendEmail(admin.email, adminSubject, adminHTML);
           if (r.success) results.sent_admin_email++;
-          await new Promise(r => setTimeout(r, 100));
+          await new Promise(r => setTimeout(r, 200));
         }
       }
     }
