@@ -206,15 +206,23 @@ table { min-width: 1100px; }
           <div class="form-field"><label>No. HP / WhatsApp <span class="req">*</span></label><input type="text" id="f-hp"></div>
           <div class="form-field"><label>Username Telegram</label><input type="text" id="f-tg" placeholder="@username"></div>
           <div class="form-field span-2"><label>Telegram Chat ID <span style="color:var(--info);font-size:10px;">(untuk notifikasi otomatis)</span></label><input type="text" id="f-tg-chat-id" placeholder="Contoh: 123456789"><small>PJ harus chat bot Telegram dulu untuk dapatkan Chat ID. <a href="start-bot.html" target="_blank">Lihat panduan</a></small></div>
+          <div class="form-field span-2"><label>Email PJ <span style="color:var(--info);font-size:10px;">(untuk notifikasi email)</span></label><input type="email" id="f-email" placeholder="contoh@gmail.com"></div>
         </div>
       </div>
       <div class="form-section">
         <div class="form-section-title"><span class="form-section-num">5</span>Pengaturan Pengingat</div>
-        <label class="toggle-card checked" id="toggleNotif">
-          <input type="checkbox" id="f-notif-tg" checked>
-          <div class="toggle-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg></div>
-          <div class="toggle-info"><strong>Pengingat Telegram</strong><span>Aktifkan notifikasi otomatis H-30, H-14, H-7, H-1, hari-H</span></div>
-        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <label class="toggle-card checked" id="toggleNotifTg">
+            <input type="checkbox" id="f-notif-tg" checked>
+            <div class="toggle-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg></div>
+            <div class="toggle-info"><strong>Telegram</strong><span>Otomatis H-30, H-14, H-7, H-1, H</span></div>
+          </label>
+          <label class="toggle-card checked" id="toggleNotifEmail">
+            <input type="checkbox" id="f-notif-email" checked>
+            <div class="toggle-icon" style="background:rgba(255,159,67,0.15);color:var(--warning);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+            <div class="toggle-info"><strong>Email</strong><span>Kirim ke email PJ</span></div>
+          </label>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -237,11 +245,11 @@ let vehicles = [];
 let editingId = null;
 let searchTerm = '';
 
-document.getElementById('toggleNotif').addEventListener('click', function(e) {
-  setTimeout(() => {
-    const cb = document.getElementById('f-notif-tg');
-    this.classList.toggle('checked', cb.checked);
-  }, 10);
+document.getElementById('toggleNotifTg').addEventListener('click', function() {
+  setTimeout(() => this.classList.toggle('checked', document.getElementById('f-notif-tg').checked), 10);
+});
+document.getElementById('toggleNotifEmail').addEventListener('click', function() {
+  setTimeout(() => this.classList.toggle('checked', document.getElementById('f-notif-email').checked), 10);
 });
 
 async function loadVehicles() {
@@ -340,12 +348,14 @@ function render() {
 function openAddModal() {
   editingId = null;
   document.getElementById('modalTitle').innerHTML = 'Tambah <em>Kendaraan</em>';
-  ['f-type','f-plate','f-stnk','f-no-pajak','f-pj','f-hp','f-tg','f-tg-chat-id','f-km'].forEach(id => document.getElementById(id).value = '');
+  ['f-type','f-plate','f-stnk','f-no-pajak','f-pj','f-hp','f-tg','f-tg-chat-id','f-email','f-km'].forEach(id => document.getElementById(id).value = '');
   ['f-stnk-date','f-pajak-date','f-service-date'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-jenis').value = 'Motor';
   document.getElementById('f-asal').value = 'ditjenim';
   document.getElementById('f-notif-tg').checked = true;
-  document.getElementById('toggleNotif').classList.add('checked');
+  document.getElementById('f-notif-email').checked = true;
+  document.getElementById('toggleNotifTg').classList.add('checked');
+  document.getElementById('toggleNotifEmail').classList.add('checked');
   document.getElementById('modal').classList.add('show');
 }
 
@@ -367,8 +377,11 @@ function openEditModal(id) {
   document.getElementById('f-hp').value = v.hp;
   document.getElementById('f-tg').value = v.tg || '';
   document.getElementById('f-tg-chat-id').value = v.telegramChatId || '';
+  document.getElementById('f-email').value = v.email || '';
   document.getElementById('f-notif-tg').checked = v.notifTg !== false;
-  document.getElementById('toggleNotif').classList.toggle('checked', v.notifTg !== false);
+  document.getElementById('f-notif-email').checked = v.notifEmail !== false;
+  document.getElementById('toggleNotifTg').classList.toggle('checked', v.notifTg !== false);
+  document.getElementById('toggleNotifEmail').classList.toggle('checked', v.notifEmail !== false);
   document.getElementById('modal').classList.add('show');
 }
 
@@ -394,7 +407,10 @@ async function saveVehicle() {
     km, kmMax: Math.round(km * 1.3) || 10000,
     pj, hp, tg: document.getElementById('f-tg').value.trim(),
     telegramChatId: document.getElementById('f-tg-chat-id').value.trim(),
-    notifTg: document.getElementById('f-notif-tg').checked, lastSent: null
+    email: document.getElementById('f-email').value.trim(),
+    notifTg: document.getElementById('f-notif-tg').checked,
+    notifEmail: document.getElementById('f-notif-email').checked,
+    lastSent: null
   };
   try {
     const dbData = uiToDb(data);
@@ -424,21 +440,37 @@ async function deleteVehicle(id) {
 
 async function sendNotif(id) {
   const v = vehicles.find(x => x.id === id); if (!v) return;
-  if (!v.notifTg) { toast('Notifikasi tidak aktif', 'Aktifkan di edit kendaraan', 'warning'); return; }
-  if (!v.telegramChatId) { toast('Chat ID kosong', `${v.pj} belum chat bot`, 'warning'); return; }
-  const tipe = prompt(`Kirim pengingat apa untuk ${v.plate}?\n\nKetik: pajak, stnk, atau service`, 'pajak');
+
+  // Pilih channel
+  let channel = prompt(`Kirim via apa untuk ${v.plate}?\n\nKetik: telegram atau email`, 'telegram');
+  if (!channel) return;
+  channel = channel.toLowerCase().trim();
+  if (!['telegram','email'].includes(channel)) { toast('Channel salah', 'Hanya telegram atau email', 'warning'); return; }
+
+  // Validasi channel
+  if (channel === 'telegram') {
+    if (!v.notifTg) { toast('Telegram tidak aktif', 'Aktifkan di edit kendaraan', 'warning'); return; }
+    if (!v.telegramChatId) { toast('Chat ID kosong', `${v.pj} belum chat bot`, 'warning'); return; }
+  } else {
+    if (!v.notifEmail) { toast('Email tidak aktif', 'Aktifkan di edit kendaraan', 'warning'); return; }
+    if (!v.email) { toast('Email kosong', `${v.pj} belum punya email`, 'warning'); return; }
+  }
+
+  // Pilih tipe
+  const tipe = prompt(`Tipe pengingat apa?\n\nKetik: pajak, stnk, atau service`, 'pajak');
   if (!tipe) return;
   if (!['pajak','stnk','service'].includes(tipe.toLowerCase())) { toast('Tipe salah', '', 'warning'); return; }
-  toast('Mengirim...', `Ke ${v.pj}`, 'info');
+
+  toast('Mengirim...', `Via ${channel} ke ${v.pj}`, 'info');
   try {
     const { data: { session } } = await supabaseClient.auth.getSession();
     const res = await fetch('/api/test-send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ kendaraan_id: id, tipe: tipe.toLowerCase() }),
+      body: JSON.stringify({ kendaraan_id: id, tipe: tipe.toLowerCase(), channel }),
     });
     const result = await res.json();
-    if (result.success) { toast('Terkirim', `Ke ${v.pj}`); await loadVehicles(); }
+    if (result.success) { toast('Terkirim', `Via ${channel} ke ${v.pj}`); await loadVehicles(); }
     else { toast('Gagal', result.error, 'danger'); }
   } catch (err) { toast('Gagal', err.message, 'danger'); }
 }

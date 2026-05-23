@@ -84,8 +84,10 @@ window.dbToUi = function(row) {
     pj: row.pj,
     hp: row.hp,
     tg: row.tg,
+    email: row.email,
     telegramChatId: row.telegram_chat_id,
     notifTg: row.notif_tg !== false,
+    notifEmail: row.notif_email !== false,
     lastSent: row.last_sent,
   };
 };
@@ -106,8 +108,10 @@ window.uiToDb = function(v) {
     pj: v.pj,
     hp: v.hp,
     tg: v.tg || null,
+    email: v.email || null,
     telegram_chat_id: v.telegramChatId || null,
     notif_tg: v.notifTg !== false,
+    notif_email: v.notifEmail !== false,
     last_sent: v.lastSent || null,
   };
 };
