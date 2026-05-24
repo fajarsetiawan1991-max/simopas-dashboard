@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
@@ -54,6 +55,12 @@
       <div class="page-title">
         <h1>Laporan & <em>Statistik</em></h1>
         <p>Analisis data kendaraan untuk pengambilan keputusan</p>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn btn-primary" id="btnExcel" onclick="exportExcel()" style="white-space:nowrap;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Excel
+        </button>
       </div>
     </div>
 
@@ -212,6 +219,262 @@ function renderTopPj(list) {
       <div class="top-count">${p.count}</div>
     </div>
   `).join('');
+}
+
+// ============================================
+// EXPORT EXCEL MULTI-SHEET
+// ============================================
+async function exportExcel() {
+  const btn = document.getElementById('btnExcel');
+  const origText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Memproses...';
+
+  try {
+    if (typeof XLSX === 'undefined') {
+      alert('Library Excel belum termuat. Refresh halaman lalu coba lagi.');
+      btn.disabled = false; btn.innerHTML = origText;
+      return;
+    }
+
+    // ===== AMBIL SEMUA DATA =====
+    toast('Mengambil data...', 'Menyiapkan laporan Excel', 'info');
+
+    const [kendaraanRes, logRes, adminRes] = await Promise.all([
+      supabaseClient.from('kendaraan').select('*').order('plate', { ascending: true }),
+      supabaseClient.from('notifikasi_log').select('*, kendaraan(plate, type, pj)').order('created_at', { ascending: false }).limit(500),
+      supabaseClient.from('admin_chats').select('*').order('nama', { ascending: true }),
+    ]);
+
+    const kendaraan = (kendaraanRes.data || []).map(window.dbToUi);
+    const logs = logRes.data || [];
+    const admins = adminRes.data || [];
+
+    if (kendaraan.length === 0) {
+      toast('Data kosong', 'Belum ada kendaraan untuk dilaporkan', 'warning');
+      btn.disabled = false; btn.innerHTML = origText;
+      return;
+    }
+
+    // ===== BUAT WORKBOOK =====
+    const wb = XLSX.utils.book_new();
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const todayFile = today.toISOString().split('T')[0];
+
+    // ===== SHEET 1: RINGKASAN =====
+    const stats = { active: 0, warning: 0, expired: 0, noPajakDate: 0 };
+    kendaraan.forEach(v => {
+      if (!v.pajakDate) { stats.noPajakDate++; return; }
+      const d = Math.ceil((new Date(v.pajakDate) - today) / 86400000);
+      if (d > 30) stats.active++;
+      else if (d > 0) stats.warning++;
+      else stats.expired++;
+    });
+
+    const byJenis = {};
+    kendaraan.forEach(v => byJenis[v.jenis] = (byJenis[v.jenis] || 0) + 1);
+
+    const byAsal = {};
+    kendaraan.forEach(v => {
+      const lbl = ORIGIN_LABELS[v.asal] || v.asal;
+      byAsal[lbl] = (byAsal[lbl] || 0) + 1;
+    });
+
+    const ringkasan = [
+      ['LAPORAN MONITORING KENDARAAN DINAS'],
+      ['SIMOPAS - Sistem Monitoring Pajak & Service'],
+      ['Tanggal Cetak:', todayStr],
+      [],
+      ['STATISTIK UMUM'],
+      ['Total Kendaraan', kendaraan.length],
+      ['Pajak Aktif (>30 hari)', stats.active],
+      ['Pajak Akan Mati (<30 hari)', stats.warning],
+      ['Pajak Mati', stats.expired],
+      ['Belum Ada Tgl Pajak', stats.noPajakDate],
+      [],
+      ['DISTRIBUSI PER JENIS'],
+      ...Object.entries(byJenis).map(([k,v]) => [k, v]),
+      [],
+      ['DISTRIBUSI PER ASAL'],
+      ...Object.entries(byAsal).map(([k,v]) => [k, v]),
+      [],
+      ['STATISTIK NOTIFIKASI'],
+      ['Total Notifikasi Terkirim', logs.filter(l => l.status === 'sent').length],
+      ['Total Notifikasi Gagal', logs.filter(l => l.status === 'failed').length],
+      ['Total PJ', new Set(kendaraan.map(v => v.pj)).size],
+      ['Total Admin Aktif', admins.filter(a => a.aktif).length],
+    ];
+
+    const wsRingkasan = XLSX.utils.aoa_to_sheet(ringkasan);
+    wsRingkasan['!cols'] = [{ wch: 32 }, { wch: 25 }];
+    // Merge judul
+    wsRingkasan['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsRingkasan, '1. Ringkasan');
+
+    // ===== SHEET 2: DAFTAR KENDARAAN =====
+    const kendaraanHeader = [
+      'No', 'No. Polisi', 'Jenis', 'Type', 'Asal',
+      'No. STNK', 'Tgl STNK', 'No. Pajak', 'Tgl Pajak',
+      'Tgl Service', 'KM Saat Ini', 'KM Max',
+      'Nama PJ', 'No. HP', 'Username TG', 'Telegram Chat ID', 'Email PJ',
+      'Notif Telegram', 'Notif Email', 'Terakhir Notif'
+    ];
+    const kendaraanRows = kendaraan.map((v, i) => [
+      i + 1,
+      v.plate,
+      v.jenis,
+      v.type,
+      ORIGIN_LABELS[v.asal] || v.asal,
+      v.stnk || '-',
+      v.stnkDate ? formatTgl(v.stnkDate) : '-',
+      v.noPajak || '-',
+      v.pajakDate ? formatTgl(v.pajakDate) : '-',
+      v.serviceDate ? formatTgl(v.serviceDate) : '-',
+      v.km || 0,
+      v.kmMax || 10000,
+      v.pj,
+      v.hp,
+      v.tg || '-',
+      v.telegramChatId || '-',
+      v.email || '-',
+      v.notifTg ? 'Ya' : 'Tidak',
+      v.notifEmail ? 'Ya' : 'Tidak',
+      v.lastSent ? formatTgl(v.lastSent) : '-',
+    ]);
+    const wsKendaraan = XLSX.utils.aoa_to_sheet([kendaraanHeader, ...kendaraanRows]);
+    wsKendaraan['!cols'] = [
+      { wch: 4 }, { wch: 12 }, { wch: 8 }, { wch: 22 }, { wch: 16 },
+      { wch: 14 }, { wch: 13 }, { wch: 14 }, { wch: 13 },
+      { wch: 13 }, { wch: 10 }, { wch: 10 },
+      { wch: 22 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 25 },
+      { wch: 14 }, { wch: 12 }, { wch: 14 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsKendaraan, '2. Daftar Kendaraan');
+
+    // ===== SHEET 3: JADWAL JATUH TEMPO =====
+    const jadwal = [];
+    kendaraan.forEach(v => {
+      const items = [
+        { tipe: 'Pajak Tahunan', tgl: v.pajakDate },
+        { tipe: 'STNK 5 Tahun', tgl: v.stnkDate },
+        { tipe: 'Service Berkala', tgl: v.serviceDate },
+      ];
+      items.forEach(i => {
+        if (i.tgl) {
+          const d = Math.ceil((new Date(i.tgl) - today) / 86400000);
+          let status = 'Aktif';
+          if (d < 0) status = `Lewat ${Math.abs(d)} hari`;
+          else if (d === 0) status = 'Jatuh tempo HARI INI';
+          else if (d === 1) status = 'Besok';
+          else if (d <= 7) status = `${d} hari lagi`;
+          else if (d <= 30) status = `${d} hari lagi`;
+          else status = 'Aktif';
+          jadwal.push({
+            tipe: i.tipe,
+            plate: v.plate,
+            type: v.type,
+            tgl: i.tgl,
+            tglFormat: formatTgl(i.tgl),
+            hariSisa: d,
+            status: status,
+            pj: v.pj,
+            hp: v.hp,
+          });
+        }
+      });
+    });
+    jadwal.sort((a,b) => a.hariSisa - b.hariSisa);
+
+    const jadwalHeader = ['No', 'No. Polisi', 'Kendaraan', 'Tipe', 'Jatuh Tempo', 'Hari Sisa', 'Status', 'Nama PJ', 'No. HP'];
+    const jadwalRows = jadwal.map((j, i) => [
+      i + 1, j.plate, j.type, j.tipe, j.tglFormat, j.hariSisa, j.status, j.pj, j.hp
+    ]);
+    const wsJadwal = XLSX.utils.aoa_to_sheet([jadwalHeader, ...jadwalRows]);
+    wsJadwal['!cols'] = [
+      { wch: 4 }, { wch: 12 }, { wch: 22 }, { wch: 16 },
+      { wch: 18 }, { wch: 10 }, { wch: 22 }, { wch: 22 }, { wch: 14 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsJadwal, '3. Jadwal Jatuh Tempo');
+
+    // ===== SHEET 4: DAFTAR PJ =====
+    const pjMap = {};
+    kendaraan.forEach(v => {
+      const k = v.pj + '|' + v.hp;
+      if (!pjMap[k]) {
+        pjMap[k] = {
+          nama: v.pj, hp: v.hp, tg: v.tg || '-',
+          email: v.email || '-',
+          telegramChatId: v.telegramChatId || '-',
+          jumlah: 0, plates: []
+        };
+      }
+      pjMap[k].jumlah++;
+      pjMap[k].plates.push(v.plate);
+    });
+    const pjList = Object.values(pjMap).sort((a,b) => b.jumlah - a.jumlah);
+    const pjHeader = ['No', 'Nama PJ', 'No. HP', 'Username Telegram', 'Email', 'Telegram Chat ID', 'Bot Aktif', 'Jumlah Kendaraan', 'Plat Kendaraan'];
+    const pjRows = pjList.map((p, i) => [
+      i + 1, p.nama, p.hp, p.tg, p.email, p.telegramChatId,
+      p.telegramChatId !== '-' ? 'Ya' : 'Belum',
+      p.jumlah, p.plates.join(', ')
+    ]);
+    const wsPj = XLSX.utils.aoa_to_sheet([pjHeader, ...pjRows]);
+    wsPj['!cols'] = [
+      { wch: 4 }, { wch: 22 }, { wch: 14 }, { wch: 16 },
+      { wch: 25 }, { wch: 16 }, { wch: 10 }, { wch: 14 }, { wch: 35 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsPj, '4. Daftar PJ');
+
+    // ===== SHEET 5: LOG NOTIFIKASI =====
+    const TIPE_LABEL = { pajak: 'Pajak Tahunan', stnk: 'STNK 5 Tahun', service: 'Service Berkala' };
+    const CHANNEL_LABEL = { telegram: 'Telegram', email: 'Email' };
+    const STATUS_LABEL = { sent: 'Terkirim', failed: 'Gagal' };
+
+    const logHeader = ['No', 'Tanggal & Jam', 'No. Polisi', 'Kendaraan', 'PJ', 'Tipe', 'Channel', 'Status', 'Hari Ke', 'Keterangan Error'];
+    const logRows = logs.map((l, i) => {
+      const k = l.kendaraan || {};
+      const dt = new Date(l.created_at);
+      return [
+        i + 1,
+        dt.toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        k.plate || '-',
+        k.type || '-',
+        k.pj || '-',
+        TIPE_LABEL[l.tipe] || l.tipe,
+        CHANNEL_LABEL[l.channel] || l.channel,
+        STATUS_LABEL[l.status] || l.status,
+        l.hari_ke !== null ? (l.hari_ke < 0 ? `Lewat ${Math.abs(l.hari_ke)} hari` : `H-${l.hari_ke}`) : '-',
+        l.error_msg || '-'
+      ];
+    });
+    const wsLog = XLSX.utils.aoa_to_sheet([logHeader, ...logRows]);
+    wsLog['!cols'] = [
+      { wch: 4 }, { wch: 18 }, { wch: 12 }, { wch: 22 }, { wch: 22 },
+      { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 35 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsLog, '5. Log Notifikasi');
+
+    // ===== DOWNLOAD =====
+    const filename = `SIMOPAS-Report-${todayFile}.xlsx`;
+    XLSX.writeFile(wb, filename);
+
+    toast('Berhasil!', `File ${filename} sudah didownload`);
+  } catch (err) {
+    console.error('Export error:', err);
+    toast('Gagal export', err.message, 'danger');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = origText;
+}
+
+function formatTgl(d) {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 (async function init() {
