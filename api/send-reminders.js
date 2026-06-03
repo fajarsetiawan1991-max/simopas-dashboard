@@ -291,6 +291,61 @@ export default async function handler(req, res) {
       }
     }
 
+    // === CEK SERVICE BERDASARKAN KM ===
+    const KM_INTERVAL = 10000;
+    const KM_NOTIF_THRESHOLD = 500;
+    const { data: allKendaraan } = await supabase.from('kendaraan').select('*');
+    const kmDueList = [];
+
+    for (const k of (allKendaraan || [])) {
+      const kmServiceStart = k.km_service_start || 0;
+      const kmTarget = kmServiceStart + KM_INTERVAL;
+      const kmSisa = kmTarget - (k.km || 0);
+
+      if (kmSisa <= KM_NOTIF_THRESHOLD) {
+        const statusLabel = kmSisa <= 0
+          ? `SUDAH LEWAT ${Math.abs(kmSisa).toLocaleString('id-ID')} km`
+          : `SISA ${kmSisa.toLocaleString('id-ID')} km lagi`;
+
+        if (k.notif_tg && k.telegram_chat_id) {
+          const { data: ex } = await supabase.from('notifikasi_log').select('id')
+            .eq('kendaraan_id', k.id).eq('tipe', 'service').eq('channel', 'telegram')
+            .eq('status', 'sent').gte('created_at', today + 'T00:00:00').limit(1);
+          if (!ex || ex.length === 0) {
+            const pesan = `🔧 *PENGINGAT SERVICE BERKALA*\n\nKepada Yth.\n*Bapak/Ibu ${k.pj}*\n\nDengan hormat,\n\nKendaraan dinas yang Bapak/Ibu pegang perlu segera di-service:\n\n📋 *Detail Kendaraan:*\n• No. Polisi: \`${k.plate}\`\n• Kendaraan: ${k.type}\n• KM Saat Ini: ${(k.km||0).toLocaleString('id-ID')} km\n• KM Target Service: ${kmTarget.toLocaleString('id-ID')} km\n• Status: *${statusLabel}*\n\nMohon segera jadwalkan service kendaraan.\n\n_Hormat kami,_\n_Tim SIMOPAS_`;
+            const r = await sendTelegram(k.telegram_chat_id, pesan);
+            await supabase.from('notifikasi_log').insert({
+              kendaraan_id: k.id, tipe: 'service', hari_ke: null,
+              channel: 'telegram', status: r.success ? 'sent' : 'failed',
+              pesan, error_msg: r.error,
+            });
+            if (r.success) { results.sent_telegram++; kmDueList.push({ ...k, kmSisa, statusLabel }); }
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
+
+        if (k.notif_email && k.email) {
+          const { data: exEmail } = await supabase.from('notifikasi_log').select('id')
+            .eq('kendaraan_id', k.id).eq('tipe', 'service').eq('channel', 'email')
+            .eq('status', 'sent').gte('created_at', today + 'T00:00:00').limit(1);
+          if (!exEmail || exEmail.length === 0) {
+            const uc = kmSisa <= 0 ? '#DC2626' : '#F59E0B';
+            const subject = `🔧 Pengingat Service Berkala: ${k.plate} (${statusLabel})`;
+            const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#f4f4f5;"><div style="max-width:620px;margin:20px auto;background:white;border-radius:12px;overflow:hidden;"><div style="background:linear-gradient(135deg,#1E3A8A,#4338ca);padding:28px 24px;color:white;text-align:center;"><div style="font-size:32px;">🔧</div><h1 style="margin:8px 0 0;font-size:22px;">Pengingat Service Berkala</h1></div><div style="background:${uc};color:white;text-align:center;padding:12px;font-weight:700;">⚠️ ${statusLabel}</div><div style="padding:28px;color:#1f2937;"><p style="margin:0 0 4px;color:#6b7280;">Kepada Yth.</p><p style="margin:0 0 20px;font-size:16px;font-weight:700;color:#1E3A8A;">Bapak/Ibu ${k.pj}</p><p>Dengan hormat, kendaraan dinas yang Bapak/Ibu pegang perlu segera di-service.</p><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:18px;margin:18px 0;"><table style="width:100%;border-collapse:collapse;"><tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;width:130px;">No. Polisi</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;"><span style="border:2px solid #000;padding:4px 10px;font-family:monospace;font-weight:700;letter-spacing:2px;border-radius:4px;">${k.plate}</span></td></tr><tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;">Kendaraan</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-weight:600;">${k.type}</td></tr><tr><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;">KM Saat Ini</td><td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-weight:600;">${(k.km||0).toLocaleString('id-ID')} km</td></tr><tr><td style="padding:8px 0;color:#6b7280;font-size:12px;">KM Target Service</td><td style="padding:8px 0;font-weight:700;color:${uc};">${kmTarget.toLocaleString('id-ID')} km</td></tr></table></div><div style="margin-top:24px;"><div>Demikian, terima kasih.</div><div style="margin-top:12px;color:#6b7280;">Hormat kami,</div><div style="font-weight:700;color:#1E3A8A;">Tim SIMOPAS</div></div></div><div style="background:#f9fafb;padding:14px;text-align:center;font-size:11px;color:#6b7280;">Email otomatis SIMOPAS Kanim</div></div></body></html>`;
+            const r = await sendEmail(k.email, subject, html);
+            await supabase.from('notifikasi_log').insert({
+              kendaraan_id: k.id, tipe: 'service', hari_ke: null,
+              channel: 'email', status: r.success ? 'sent' : 'failed',
+              pesan: subject, error_msg: r.error,
+            });
+            if (r.success) results.sent_email++;
+            await new Promise(r => setTimeout(r, 500));
+          }
+        }
+      }
+    }
+    results.total_due += kmDueList.length;
+
     const { data: admins } = await supabase.from('admin_chats').select('*').eq('aktif', true);
     if (admins && admins.length > 0) {
       const pesanAdminTg = (() => {
