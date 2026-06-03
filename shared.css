@@ -144,3 +144,20 @@ tr.row-clickable:hover { background: var(--bg-hover); }
   .page-title h1 { font-size: 28px; }
   .icon-btn { width: 36px; height: 36px; }
 }
+
+/* ===== ANIMASI MASUK HALAMAN ===== */
+@keyframes pageFadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.page-enter .sidebar     { animation: pageFadeIn  0.4s ease both; }
+.page-enter .topbar      { animation: pageFadeIn  0.4s ease 0.05s both; }
+.page-enter .page-title  { animation: pageFadeUp  0.5s ease 0.1s both; }
+.page-enter .stats,
+.page-enter .table-wrap,
+.page-enter .content-card,
+.page-enter .filter-bar  { animation: pageFadeUp  0.5s ease 0.2s both; }
