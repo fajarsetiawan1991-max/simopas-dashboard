@@ -383,7 +383,13 @@ if (!isConfigured) {
 }
 let supabaseClient = null;
 if (isConfigured) {
-  supabaseClient = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+  supabaseClient = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      storageKey: 'simopas-session',
+    }
+  });
   supabaseClient.auth.getSession().then(({ data: { session } }) => {
     if (session) window.location.href = 'app.html';
   });

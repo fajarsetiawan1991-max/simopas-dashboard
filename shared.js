@@ -13,7 +13,13 @@ const cfg = window.SIMOPAS_CONFIG || {};
 if (!cfg.SUPABASE_URL || cfg.SUPABASE_URL === 'GANTI_DENGAN_URL_SUPABASE_KAMU') {
   alert('Setup belum lengkap! Edit file config.js dengan kredensial Supabase.');
 }
-window.supabaseClient = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+window.supabaseClient = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    storageKey: 'simopas-session',
+  }
+});
 
 // ============= DATE HELPERS =============
 window.today = (function() {
