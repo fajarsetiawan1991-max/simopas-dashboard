@@ -88,6 +88,7 @@ window.dbToUi = function(row) {
     serviceDate: row.service_date,
     km: row.km || 0,
     kmMax: row.km_max || 10000,
+    kmServiceStart: row.km_service_start || 0,
     pj: row.pj,
     hp: row.hp,
     tg: row.tg,
@@ -112,6 +113,7 @@ window.uiToDb = function(v) {
     service_date: v.serviceDate || null,
     km: v.km || 0,
     km_max: v.kmMax || 10000,
+    km_service_start: v.kmServiceStart || 0,
     pj: v.pj,
     hp: v.hp,
     tg: v.tg || null,
@@ -121,6 +123,29 @@ window.uiToDb = function(v) {
     notif_email: v.notifEmail !== false,
     last_sent: v.lastSent || null,
   };
+};
+
+// Helper: hitung status service berdasarkan KM
+window.getServiceKmStatus = function(km, kmServiceStart) {
+  const KM_INTERVAL = 10000;
+  const KM_NOTIF_THRESHOLD = 500;
+  const kmTarget = (kmServiceStart || 0) + KM_INTERVAL;
+  const kmSisa = kmTarget - (km || 0);
+  const kmProgress = Math.min(100, Math.max(0, ((km - kmServiceStart) / KM_INTERVAL) * 100));
+
+  let status, color, label;
+  if (kmSisa <= 0) {
+    status = 'overdue'; color = '#DC2626';
+    label = `Lewat ${Math.abs(kmSisa).toLocaleString('id-ID')} km`;
+  } else if (kmSisa <= KM_NOTIF_THRESHOLD) {
+    status = 'warning'; color = '#F59E0B';
+    label = `Sisa ${kmSisa.toLocaleString('id-ID')} km`;
+  } else {
+    status = 'ok'; color = '#059669';
+    label = `Sisa ${kmSisa.toLocaleString('id-ID')} km`;
+  }
+
+  return { kmTarget, kmSisa, kmProgress, status, color, label };
 };
 
 // ============= AUTH =============
@@ -218,10 +243,28 @@ window.renderSidebar = function(activePage) {
           <div class="user-name" id="userName">Loading...</div>
           <div class="user-role" id="userRole">admin</div>
         </div>
-        <button class="icon-btn" id="btnLogout" title="Logout" style="margin-left:4px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
       </div>
+      <button id="btnLogout" style="
+        width:100%;
+        margin-top:8px;
+        padding:9px 12px;
+        background:rgba(255,85,102,0.12);
+        border:1px solid rgba(255,85,102,0.3);
+        border-radius:8px;
+        color:#ff7785;
+        font-family:inherit;
+        font-size:13px;
+        font-weight:600;
+        cursor:pointer;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        transition:all 0.15s ease;
+      " onmouseover="this.style.background='rgba(255,85,102,0.22)'" onmouseout="this.style.background='rgba(255,85,102,0.12)'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
     </div>
   `;
 
