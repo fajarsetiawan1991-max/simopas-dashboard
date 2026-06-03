@@ -385,9 +385,10 @@ let supabaseClient = null;
 if (isConfigured) {
   supabaseClient = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
     auth: {
-      persistSession: false,
-      autoRefreshToken: false,
+      persistSession: true,
+      autoRefreshToken: true,
       storageKey: 'simopas-session',
+      storage: window.sessionStorage,
     }
   });
   supabaseClient.auth.getSession().then(({ data: { session } }) => {

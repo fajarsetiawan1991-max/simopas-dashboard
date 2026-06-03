@@ -15,9 +15,10 @@ if (!cfg.SUPABASE_URL || cfg.SUPABASE_URL === 'GANTI_DENGAN_URL_SUPABASE_KAMU') 
 }
 window.supabaseClient = supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
   auth: {
-    persistSession: false,
-    autoRefreshToken: false,
+    persistSession: true,
+    autoRefreshToken: true,
     storageKey: 'simopas-session',
+    storage: window.sessionStorage, // pakai sessionStorage, bukan localStorage
   }
 });
 
