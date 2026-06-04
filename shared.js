@@ -88,6 +88,7 @@ window.dbToUi = function(row) {
     serviceDate: row.service_date,
     km: row.km || 0,
     kmMax: row.km_max || 10000,
+    kmServiceStart: row.km_service_start || 0,
     pj: row.pj,
     hp: row.hp,
     tg: row.tg,
@@ -112,6 +113,7 @@ window.uiToDb = function(v) {
     service_date: v.serviceDate || null,
     km: v.km || 0,
     km_max: v.kmMax || 10000,
+    km_service_start: v.kmServiceStart || 0,
     pj: v.pj,
     hp: v.hp,
     tg: v.tg || null,
@@ -121,6 +123,29 @@ window.uiToDb = function(v) {
     notif_email: v.notifEmail !== false,
     last_sent: v.lastSent || null,
   };
+};
+
+// Helper: hitung status service berdasarkan KM
+window.getServiceKmStatus = function(km, kmServiceStart) {
+  const KM_INTERVAL = 10000;
+  const KM_NOTIF_THRESHOLD = 500;
+  const kmTarget = (kmServiceStart || 0) + KM_INTERVAL;
+  const kmSisa = kmTarget - (km || 0);
+  const kmProgress = Math.min(100, Math.max(0, ((km - kmServiceStart) / KM_INTERVAL) * 100));
+
+  let status, color, label;
+  if (kmSisa <= 0) {
+    status = 'overdue'; color = '#DC2626';
+    label = `Lewat ${Math.abs(kmSisa).toLocaleString('id-ID')} km`;
+  } else if (kmSisa <= KM_NOTIF_THRESHOLD) {
+    status = 'warning'; color = '#F59E0B';
+    label = `Sisa ${kmSisa.toLocaleString('id-ID')} km`;
+  } else {
+    status = 'ok'; color = '#059669';
+    label = `Sisa ${kmSisa.toLocaleString('id-ID')} km`;
+  }
+
+  return { kmTarget, kmSisa, kmProgress, status, color, label };
 };
 
 // ============= AUTH =============
@@ -268,12 +293,5 @@ window.simopasInit = async function(activePage) {
   window.renderSidebar(activePage);
   window.setupLogoutBtn();
   window.setupSidebarToggle();
-  const user = await window.checkAuth();
-  // Trigger animasi masuk halaman
-  if (user) {
-    requestAnimationFrame(() => {
-      document.body.classList.add('page-enter');
-    });
-  }
-  return user;
+  return await window.checkAuth();
 };
