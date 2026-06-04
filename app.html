@@ -9,6 +9,63 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
 <style>
+/* ===== MODAL SERVICE ===== */
+#serviceModal {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+#serviceModal.show { opacity: 1; pointer-events: all; }
+.service-modal-inner {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 16px; width: 100%; max-width: 580px;
+  max-height: 90vh; overflow-y: auto;
+  transform: scale(0.96); transition: transform 0.2s ease;
+}
+#serviceModal.show .service-modal-inner { transform: scale(1); }
+.sm-header {
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg-card); z-index: 1;
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.sm-header-left h2 { font-family: 'Instrument Serif', serif; font-size: 20px; color: var(--text); margin-bottom: 2px; }
+.sm-header-left h2 em { color: var(--accent); font-style: italic; }
+.sm-header-left p { font-size: 12px; color: var(--text-mute); }
+.sm-body { padding: 20px 24px; }
+.sm-km-status { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
+.sm-km-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+.sm-km-val { font-weight: 700; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+.sm-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-mute); margin-bottom: 12px; }
+.sm-history { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.sm-history-empty { text-align: center; padding: 20px; color: var(--text-mute); font-size: 13px; background: var(--bg-elev); border-radius: 8px; }
+.sm-history-item { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.sm-history-item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sm-history-date { font-size: 13px; font-weight: 700; color: var(--text); }
+.sm-history-km { font-size: 11px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; background: var(--bg-card); padding: 2px 8px; border-radius: 4px; }
+.sm-history-items { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.sm-badge { background: rgba(5,150,105,0.15); color: #34d399; border: 1px solid rgba(5,150,105,0.25); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+.sm-badge.lainnya { background: rgba(99,102,241,0.15); color: #a5b4fc; border-color: rgba(99,102,241,0.25); }
+.sm-history-catatan { font-size: 12px; color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; line-height: 1.5; }
+.sm-divider { border: none; border-top: 1px solid var(--border); margin: 0 0 20px; }
+.sm-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.sm-field { margin-bottom: 14px; }
+.sm-field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); margin-bottom: 6px; }
+.sm-field input, .sm-field textarea { width: 100%; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; transition: border 0.15s; }
+.sm-field input:focus, .sm-field textarea:focus { border-color: var(--accent); }
+.sm-field textarea { resize: vertical; min-height: 72px; }
+.sm-checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.sm-check-item { display: flex; align-items: center; gap: 8px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; cursor: pointer; transition: all 0.15s; font-size: 13px; color: var(--text-dim); user-select: none; }
+.sm-check-item:hover { border-color: var(--accent); color: var(--text); }
+.sm-check-item.checked { background: rgba(5,150,105,0.1); border-color: rgba(5,150,105,0.4); color: #34d399; }
+.sm-check-icon { width: 16px; height: 16px; border: 1.5px solid currentColor; border-radius: 4px; flex-shrink: 0; display: grid; place-items: center; }
+.sm-check-item.checked .sm-check-icon { background: #059669; border-color: #059669; }
+.sm-check-item.checked .sm-check-icon::after { content: '✓'; color: white; font-size: 10px; font-weight: 700; }
+.sm-lainnya-wrap { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+.sm-lainnya-label { font-size: 11px; color: var(--text-mute); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.sm-lainnya-input { width: 100%; background: transparent; border: none; outline: none; color: var(--text); font-family: inherit; font-size: 13px; }
+.sm-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; position: sticky; bottom: 0; background: var(--bg-card); }
 .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
 .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; transition: all 0.2s ease; }
 .stat-card:hover { border-color: var(--border-hi); transform: translateY(-1px); }
@@ -164,6 +221,86 @@ table { min-width: 1100px; }
 </div>
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- MODAL SERVICE -->
+<div id="serviceModal">
+  <div class="service-modal-inner">
+    <div class="sm-header">
+      <div class="sm-header-left">
+        <h2>🔧 Riwayat <em>Service</em></h2>
+        <p id="smVehicleInfo">—</p>
+      </div>
+      <button class="icon-btn" onclick="closeServiceModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="sm-body">
+
+      <!-- KM Status -->
+      <div class="sm-km-status">
+        <div class="sm-km-row">
+          <span>KM Saat Ini</span>
+          <span class="sm-km-val" id="smKmNow">—</span>
+        </div>
+        <div class="sm-km-row">
+          <span>Target Service Berikutnya</span>
+          <span class="sm-km-val" id="smKmTarget">—</span>
+        </div>
+        <div class="sm-km-row" style="margin-bottom:10px;">
+          <span>Sisa</span>
+          <span class="sm-km-val" id="smKmSisa">—</span>
+        </div>
+        <div class="km-bar" style="height:6px;border-radius:4px;">
+          <div class="km-bar-fill" id="smKmBar" style="width:0%;height:100%;border-radius:4px;transition:width 0.6s ease;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-mute);margin-top:6px;" id="smTglTerakhir">Belum ada riwayat service</div>
+      </div>
+
+      <!-- Riwayat -->
+      <div class="sm-section-title">Riwayat Service</div>
+      <div class="sm-history" id="smHistoryList">
+        <div class="sm-history-empty">Belum ada riwayat service</div>
+      </div>
+
+      <!-- Form Catat Baru -->
+      <hr class="sm-divider">
+      <div class="sm-section-title">+ Catat Service Baru</div>
+
+      <div class="sm-form-row">
+        <div class="sm-field">
+          <label>Tanggal Service *</label>
+          <input type="date" id="smTanggal">
+        </div>
+        <div class="sm-field">
+          <label>KM Saat Service *</label>
+          <input type="number" id="smKmService" placeholder="Contoh: 45230" min="0">
+        </div>
+      </div>
+
+      <div class="sm-section-title" style="margin-bottom:10px;">Yang Diservis</div>
+      <div class="sm-checklist" id="smChecklist">
+        <!-- diisi JS -->
+      </div>
+
+      <!-- Lainnya -->
+      <div class="sm-lainnya-wrap">
+        <div class="sm-lainnya-label">Lainnya (isi sendiri)</div>
+        <input type="text" class="sm-lainnya-input" id="smLainnya" placeholder="Contoh: Ganti timing belt, cek AC...">
+      </div>
+
+      <!-- Catatan -->
+      <div class="sm-field">
+        <label>Catatan Tambahan</label>
+        <textarea id="smCatatan" placeholder="Contoh: Ban depan mulai aus, perlu ganti bulan depan..."></textarea>
+      </div>
+
+    </div>
+    <div class="sm-footer">
+      <button class="btn" onclick="closeServiceModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveService()">💾 Simpan Service</button>
+    </div>
+  </div>
+</div>
 <button class="fab" onclick="openAddModal()" aria-label="Tambah"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></button>
 
 <!-- MODAL ADD/EDIT -->
@@ -322,6 +459,7 @@ function render() {
         <td><div class="actions-cell">
           <button class="icon-btn" title="Edit" onclick="openEditModal(${v.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>
           <button class="icon-btn" title="Update KM" onclick="updateKm(${v.id})" style="color:var(--info);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+          <button class="icon-btn" title="Riwayat Service" onclick="openServiceModal(${v.id})" style="color:#34d399;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></button>
           <button class="icon-btn" title="Kirim Notif" onclick="sendNotif(${v.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
           <button class="icon-btn danger" title="Hapus" onclick="deleteVehicle(${v.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </div></td>
@@ -442,6 +580,192 @@ async function deleteVehicle(id) {
     toast('Data dihapus', `${v.plate} telah dihapus`, 'danger');
     await loadVehicles();
   } catch (err) { toast('Gagal menghapus', err.message, 'danger'); }
+}
+
+// ============ SERVICE MODAL ============
+const SERVICE_ITEMS = [
+  'Ganti Oli Mesin', 'Filter Oli', 'Filter Udara', 'Filter Bensin',
+  'Busi', 'Rem Depan', 'Rem Belakang', 'Aki / Baterai',
+  'Ban', 'Kopling', 'AC / Freon', 'Wiper',
+  'Tune Up', 'Radiator / Coolant',
+];
+
+let currentServiceVehicleId = null;
+
+// Render checklist item
+function renderChecklist() {
+  const wrap = document.getElementById('smChecklist');
+  wrap.innerHTML = SERVICE_ITEMS.map(item => `
+    <label class="sm-check-item" onclick="toggleCheck(this)">
+      <input type="checkbox" value="${item}">
+      <div class="sm-check-icon"></div>
+      <span>${item}</span>
+    </label>
+  `).join('');
+}
+
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  el.querySelector('input').checked = el.classList.contains('checked');
+}
+
+function getCheckedItems() {
+  return [...document.querySelectorAll('#smChecklist .sm-check-item.checked')]
+    .map(el => el.querySelector('input').value);
+}
+
+function resetChecklist() {
+  document.querySelectorAll('#smChecklist .sm-check-item').forEach(el => {
+    el.classList.remove('checked');
+    el.querySelector('input').checked = false;
+  });
+}
+
+async function openServiceModal(id) {
+  const v = vehicles.find(x => x.id === id); if (!v) return;
+  currentServiceVehicleId = id;
+
+  // Isi info kendaraan
+  document.getElementById('smVehicleInfo').textContent = `${v.plate} — ${v.type}`;
+
+  // KM status
+  const kmTarget = (v.kmServiceStart || 0) + 10000;
+  const kmSisa = kmTarget - (v.km || 0);
+  const kmPct = Math.min(100, Math.max(0, ((v.km - (v.kmServiceStart||0)) / 10000) * 100));
+  document.getElementById('smKmNow').textContent = `${(v.km||0).toLocaleString('id-ID')} km`;
+  document.getElementById('smKmTarget').textContent = `${kmTarget.toLocaleString('id-ID')} km`;
+  const sisaEl = document.getElementById('smKmSisa');
+  if (kmSisa <= 0) {
+    sisaEl.textContent = `Lewat ${Math.abs(kmSisa).toLocaleString('id-ID')} km`;
+    sisaEl.style.color = 'var(--danger)';
+  } else {
+    sisaEl.textContent = `${kmSisa.toLocaleString('id-ID')} km`;
+    sisaEl.style.color = kmSisa <= 500 ? 'var(--warning)' : 'var(--success)';
+  }
+  const bar = document.getElementById('smKmBar');
+  bar.style.width = '0%';
+  bar.className = `km-bar-fill${kmPct >= 95 ? ' danger' : kmPct >= 80 ? ' warning' : ''}`;
+  setTimeout(() => { bar.style.width = kmPct + '%'; }, 100);
+
+  // Render checklist
+  renderChecklist();
+
+  // Reset form
+  document.getElementById('smTanggal').value = new Date().toISOString().split('T')[0];
+  document.getElementById('smKmService').value = v.km || '';
+  document.getElementById('smLainnya').value = '';
+  document.getElementById('smCatatan').value = '';
+  resetChecklist();
+
+  // Load riwayat service
+  await loadServiceHistory(id, v);
+
+  document.getElementById('serviceModal').classList.add('show');
+}
+
+async function loadServiceHistory(id, v) {
+  const listEl = document.getElementById('smHistoryList');
+  const tglEl = document.getElementById('smTglTerakhir');
+  listEl.innerHTML = '<div class="sm-history-empty" style="opacity:0.5;">Memuat riwayat...</div>';
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('service_log')
+      .select('*')
+      .eq('kendaraan_id', id)
+      .order('tanggal', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div class="sm-history-empty">Belum ada riwayat service tercatat</div>';
+      tglEl.textContent = 'Belum ada riwayat service';
+      return;
+    }
+
+    // Tampilkan tanggal terakhir service
+    const latest = data[0];
+    const tglFormatted = new Date(latest.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    tglEl.textContent = `Terakhir service: ${tglFormatted} • ${latest.km_saat_service.toLocaleString('id-ID')} km`;
+
+    listEl.innerHTML = data.map(s => {
+      const tgl = new Date(s.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+      const items = (s.item_service || []).map(i => `<span class="sm-badge">${i}</span>`).join('');
+      const lainnya = s.item_lainnya ? `<span class="sm-badge lainnya">✎ ${s.item_lainnya}</span>` : '';
+      const catatan = s.catatan ? `<div class="sm-history-catatan">📝 ${s.catatan}</div>` : '';
+      return `<div class="sm-history-item">
+        <div class="sm-history-item-header">
+          <span class="sm-history-date">📅 ${tgl}</span>
+          <span class="sm-history-km">${s.km_saat_service.toLocaleString('id-ID')} km</span>
+        </div>
+        <div class="sm-history-items">${items}${lainnya}</div>
+        ${catatan}
+      </div>`;
+    }).join('');
+  } catch (err) {
+    listEl.innerHTML = `<div class="sm-history-empty">Gagal memuat riwayat: ${err.message}</div>`;
+  }
+}
+
+function closeServiceModal() {
+  document.getElementById('serviceModal').classList.remove('show');
+  currentServiceVehicleId = null;
+}
+
+async function saveService() {
+  const id = currentServiceVehicleId; if (!id) return;
+  const v = vehicles.find(x => x.id === id); if (!v) return;
+
+  const tanggal = document.getElementById('smTanggal').value;
+  const kmService = parseInt(document.getElementById('smKmService').value) || 0;
+  const checkedItems = getCheckedItems();
+  const lainnya = document.getElementById('smLainnya').value.trim();
+  const catatan = document.getElementById('smCatatan').value.trim();
+
+  if (!tanggal) { toast('Tanggal wajib diisi', '', 'warning'); return; }
+  if (!kmService) { toast('KM saat service wajib diisi', '', 'warning'); return; }
+  if (checkedItems.length === 0 && !lainnya) {
+    toast('Pilih minimal 1 item service', 'atau isi kolom Lainnya', 'warning'); return;
+  }
+
+  try {
+    // Simpan ke service_log
+    const { error: errLog } = await supabaseClient.from('service_log').insert({
+      kendaraan_id: id,
+      tanggal,
+      km_saat_service: kmService,
+      item_service: checkedItems,
+      item_lainnya: lainnya || null,
+      catatan: catatan || null,
+    });
+    if (errLog) throw errLog;
+
+    // Update kendaraan: km_service_start = km saat service, tanggal_service_terakhir = tanggal
+    const { error: errKen } = await supabaseClient.from('kendaraan').update({
+      km_service_start: kmService,
+      tanggal_service_terakhir: tanggal,
+    }).eq('id', id);
+    if (errKen) throw errKen;
+
+    toast('Service berhasil dicatat!', `${v.plate} — target berikutnya ${(kmService + 10000).toLocaleString('id-ID')} km`);
+
+    // Reload data
+    await loadVehicles();
+
+    // Reload riwayat di modal (update v dari vehicles baru)
+    const vBaru = vehicles.find(x => x.id === id);
+    if (vBaru) await loadServiceHistory(id, vBaru);
+
+    // Reset form
+    resetChecklist();
+    document.getElementById('smLainnya').value = '';
+    document.getElementById('smCatatan').value = '';
+    document.getElementById('smTanggal').value = new Date().toISOString().split('T')[0];
+
+  } catch (err) {
+    toast('Gagal menyimpan service', err.message, 'danger');
+  }
 }
 
 async function updateKm(id) {
