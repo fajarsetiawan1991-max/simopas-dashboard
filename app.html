@@ -323,7 +323,7 @@ table { min-width: 1100px; }
           <div class="form-field"><label>Jenis <span class="req">*</span></label><select id="f-jenis"><option>Motor</option><option>Mobil</option><option>Truk</option><option>Bus</option></select></div>
           <div class="form-field"><label>Type / Merek <span class="req">*</span></label><input type="text" id="f-type" placeholder="Toyota Innova"></div>
           <div class="form-field"><label>No. Polisi <span class="req">*</span></label><input type="text" id="f-plate" placeholder="KT 1234 AB" style="text-transform:uppercase"></div>
-          <div class="form-field"><label>Asal Hibah <span class="req">*</span></label><select id="f-asal"><option value="ditjenim">Ditjenim</option><option value="kanim_sampit">Kanim Sampit</option><option value="kanim_pky">Kanim Palangkaraya</option><option value="kanim_kobar">Kanim Kobar</option><option value="kanwil">Kanwil Kemenkum</option></select></div>
+          <div class="form-field"><label>Asal Hibah <span class="req">*</span></label><select id="f-asal"><option value="ditjenim">Ditjenim Pusat</option><option value="kanwil_ditjenim">Kanwil Ditjenim Kalteng</option><option value="kanim_sampit">Kanim Sampit</option><option value="kanim_pky">Kanim Palangkaraya</option><option value="kanim_kobar">Kanim Kobar</option><option value="kanwil">Kanwil Kemenkum</option></select></div>
         </div>
       </div>
       <div class="form-section">
@@ -569,10 +569,12 @@ async function saveVehicle() {
       const { error } = await supabaseClient.from('kendaraan').update(dbData).eq('id', editingId);
       if (error) throw error;
       toast('Berhasil diperbarui', `${plate} telah diupdate`);
+      window.logActivity('Edit Kendaraan', `${plate} - ${type}`, editingId);
     } else {
       const { error } = await supabaseClient.from('kendaraan').insert(dbData);
       if (error) throw error;
       toast('Berhasil ditambahkan', `${plate} telah didaftarkan`);
+      window.logActivity('Tambah Kendaraan', `${plate} - ${type}`);
     }
     closeModal(); await loadVehicles();
   } catch (err) { toast('Gagal menyimpan', err.message, 'danger'); }
@@ -585,6 +587,7 @@ async function deleteVehicle(id) {
     const { error } = await supabaseClient.from('kendaraan').delete().eq('id', id);
     if (error) throw error;
     toast('Data dihapus', `${v.plate} telah dihapus`, 'danger');
+    window.logActivity('Hapus Kendaraan', `${v.plate} - ${v.type}`);
     await loadVehicles();
   } catch (err) { toast('Gagal menghapus', err.message, 'danger'); }
 }
@@ -786,6 +789,7 @@ async function saveService() {
 
     const interval = window.getServiceInterval(v.jenis);
     toast('Service berhasil dicatat!', `${v.plate} — target berikutnya ${(kmService + interval).toLocaleString('id-ID')} km`);
+    window.logActivity('Catat Service', `${v.plate} - ${kmService.toLocaleString('id-ID')} km | ${[...checkedItems, ...lainnyaItems].join(', ')}`, id);
 
     // Reload data
     await loadVehicles();
@@ -821,6 +825,7 @@ async function updateKm(id) {
     if (error) throw error;
     const kmStatus = window.getServiceKmStatus(kmNum, v.kmServiceStart, v.jenis);
     toast('KM diperbarui', `${v.plate}: ${kmNum.toLocaleString('id-ID')} km — ${kmStatus.label}`);
+    window.logActivity('Update KM', `${v.plate}: ${v.km.toLocaleString('id-ID')} → ${kmNum.toLocaleString('id-ID')} km`, id);
     await loadVehicles();
   } catch (err) { toast('Gagal', err.message, 'danger'); }
 }

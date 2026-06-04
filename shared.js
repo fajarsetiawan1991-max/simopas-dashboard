@@ -1,7 +1,8 @@
 // SIMOPAS Shared Helpers - v4
 
 window.ORIGIN_LABELS = {
-  ditjenim: 'Ditjenim',
+  ditjenim: 'Ditjenim Pusat',
+  kanwil_ditjenim: 'Kanwil Ditjenim Kalteng',
   kanim_sampit: 'Kanim Sampit',
   kanim_pky: 'Kanim Palangkaraya',
   kanim_kobar: 'Kanim Kobar',
@@ -294,10 +295,29 @@ window.toast = function(title, msg, type = 'success') {
   setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; setTimeout(() => t.remove(), 300); }, 3500);
 };
 
+// ============= LOG AKTIVITAS =============
+window.logActivity = async function(aksi, detail = '', kendaraan_id = null) {
+  try {
+    const { data: { session } } = await window.supabaseClient.auth.getSession();
+    const user = session?.user;
+    await window.supabaseClient.from('aktivitas_log').insert({
+      aksi,
+      detail,
+      kendaraan_id,
+      user_email: user?.email || 'system',
+      created_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn('logActivity error:', e.message);
+  }
+};
+
 // ============= INIT (call on every page) =============
 window.simopasInit = async function(activePage) {
   window.renderSidebar(activePage);
   window.setupLogoutBtn();
   window.setupSidebarToggle();
-  return await window.checkAuth();
+  const user = await window.checkAuth();
+  if (user) requestAnimationFrame(() => document.body.classList.add('page-enter'));
+  return user;
 };
