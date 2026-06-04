@@ -282,10 +282,16 @@ table { min-width: 1100px; }
         <!-- diisi JS -->
       </div>
 
-      <!-- Lainnya -->
+      <!-- Lainnya - bisa tambah lebih dari 1 -->
       <div class="sm-lainnya-wrap">
         <div class="sm-lainnya-label">Lainnya (isi sendiri)</div>
-        <input type="text" class="sm-lainnya-input" id="smLainnya" placeholder="Contoh: Ganti timing belt, cek AC...">
+        <div id="smLainnyaList"></div>
+        <button type="button" onclick="addLainnyaItem()" style="
+          background:none; border:none; color:var(--accent);
+          font-size:12px; font-weight:600; cursor:pointer;
+          padding:4px 0; display:flex; align-items:center; gap:4px;
+          margin-top:4px;
+        ">+ Tambah item lainnya</button>
       </div>
 
       <!-- Catatan -->
@@ -401,10 +407,11 @@ function render() {
   const active = vehicles.filter(v => getStatus(daysUntil(v.pajakDate)) === 'active').length;
   const warning = vehicles.filter(v => getStatus(daysUntil(v.pajakDate)) === 'warning').length;
   const expired = vehicles.filter(v => getStatus(daysUntil(v.pajakDate)) === 'expired').length;
-  // Service: hitung yang km-nya sisa <= 500
+  // Service: hitung yang km-nya mendekati batas (10% dari interval)
   const service = vehicles.filter(v => {
-    const kmSisa = (v.kmServiceStart + 10000) - v.km;
-    return kmSisa <= 500;
+    const interval = window.getServiceInterval(v.jenis);
+    const kmSisa = (v.kmServiceStart + interval) - v.km;
+    return kmSisa <= Math.round(interval * 0.1);
   }).length;
 
   document.getElementById('statTotal').textContent = total;
@@ -435,7 +442,7 @@ function render() {
   tbody.innerHTML = filtered.map((v, idx) => {
     const days = daysUntil(v.pajakDate);
     const status = getStatus(days);
-    const kmStatus = window.getServiceKmStatus(v.km, v.kmServiceStart);
+    const kmStatus = window.getServiceKmStatus(v.km, v.kmServiceStart, v.jenis);
     const kmPct = Math.min(100, Math.max(0, ((v.km - v.kmServiceStart) / 10000) * 100));
     const kmBarClass = kmStatus.status === 'overdue' ? 'danger' : kmStatus.status === 'warning' ? 'warning' : '';
     const statusClass = status === 'active' ? 'status-active' : status === 'warning' ? 'status-warning' : 'status-expired';
@@ -604,6 +611,33 @@ function renderChecklist() {
   `).join('');
 }
 
+function addLainnyaItem(value = '') {
+  const list = document.getElementById('smLainnyaList');
+  const idx = list.children.length;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+  div.innerHTML = `
+    <input type="text" class="sm-lainnya-input"
+      placeholder="Contoh: Ganti timing belt..."
+      style="flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:inherit;font-size:13px;"
+      value="${value}">
+    <button type="button" onclick="this.parentElement.remove()"
+      style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0;line-height:1;opacity:0.7;">✕</button>
+  `;
+  list.appendChild(div);
+  div.querySelector('input').focus();
+}
+
+function getLainnyaItems() {
+  return [...document.querySelectorAll('#smLainnyaList input')]
+    .map(i => i.value.trim()).filter(Boolean);
+}
+
+function resetLainnya() {
+  document.getElementById('smLainnyaList').innerHTML = '';
+  addLainnyaItem(); // selalu ada 1 field kosong
+}
+
 function toggleCheck(el) {
   el.classList.toggle('checked');
   el.querySelector('input').checked = el.classList.contains('checked');
@@ -629,18 +663,20 @@ async function openServiceModal(id) {
   document.getElementById('smVehicleInfo').textContent = `${v.plate} — ${v.type}`;
 
   // KM status
-  const kmTarget = (v.kmServiceStart || 0) + 10000;
+  const KM_INTERVAL = window.getServiceInterval(v.jenis);
+  const KM_THRESHOLD = Math.round(KM_INTERVAL * 0.1);
+  const kmTarget = (v.kmServiceStart || 0) + KM_INTERVAL;
   const kmSisa = kmTarget - (v.km || 0);
-  const kmPct = Math.min(100, Math.max(0, ((v.km - (v.kmServiceStart||0)) / 10000) * 100));
+  const kmPct = Math.min(100, Math.max(0, ((v.km - (v.kmServiceStart||0)) / KM_INTERVAL) * 100));
   document.getElementById('smKmNow').textContent = `${(v.km||0).toLocaleString('id-ID')} km`;
-  document.getElementById('smKmTarget').textContent = `${kmTarget.toLocaleString('id-ID')} km`;
+  document.getElementById('smKmTarget').textContent = `${kmTarget.toLocaleString('id-ID')} km (interval ${KM_INTERVAL.toLocaleString('id-ID')} km)`;
   const sisaEl = document.getElementById('smKmSisa');
   if (kmSisa <= 0) {
     sisaEl.textContent = `Lewat ${Math.abs(kmSisa).toLocaleString('id-ID')} km`;
     sisaEl.style.color = 'var(--danger)';
   } else {
     sisaEl.textContent = `${kmSisa.toLocaleString('id-ID')} km`;
-    sisaEl.style.color = kmSisa <= 500 ? 'var(--warning)' : 'var(--success)';
+    sisaEl.style.color = kmSisa <= KM_THRESHOLD ? 'var(--warning)' : 'var(--success)';
   }
   const bar = document.getElementById('smKmBar');
   bar.style.width = '0%';
@@ -653,7 +689,7 @@ async function openServiceModal(id) {
   // Reset form
   document.getElementById('smTanggal').value = new Date().toISOString().split('T')[0];
   document.getElementById('smKmService').value = v.km || '';
-  document.getElementById('smLainnya').value = '';
+  resetLainnya();
   document.getElementById('smCatatan').value = '';
   resetChecklist();
 
@@ -720,12 +756,12 @@ async function saveService() {
   const tanggal = document.getElementById('smTanggal').value;
   const kmService = parseInt(document.getElementById('smKmService').value) || 0;
   const checkedItems = getCheckedItems();
-  const lainnya = document.getElementById('smLainnya').value.trim();
+  const lainnyaItems = getLainnyaItems();
   const catatan = document.getElementById('smCatatan').value.trim();
 
   if (!tanggal) { toast('Tanggal wajib diisi', '', 'warning'); return; }
   if (!kmService) { toast('KM saat service wajib diisi', '', 'warning'); return; }
-  if (checkedItems.length === 0 && !lainnya) {
+  if (checkedItems.length === 0 && lainnyaItems.length === 0) {
     toast('Pilih minimal 1 item service', 'atau isi kolom Lainnya', 'warning'); return;
   }
 
@@ -736,7 +772,7 @@ async function saveService() {
       tanggal,
       km_saat_service: kmService,
       item_service: checkedItems,
-      item_lainnya: lainnya || null,
+      item_lainnya: lainnyaItems.length > 0 ? lainnyaItems.join(', ') : null,
       catatan: catatan || null,
     });
     if (errLog) throw errLog;
@@ -748,7 +784,8 @@ async function saveService() {
     }).eq('id', id);
     if (errKen) throw errKen;
 
-    toast('Service berhasil dicatat!', `${v.plate} — target berikutnya ${(kmService + 10000).toLocaleString('id-ID')} km`);
+    const interval = window.getServiceInterval(v.jenis);
+    toast('Service berhasil dicatat!', `${v.plate} — target berikutnya ${(kmService + interval).toLocaleString('id-ID')} km`);
 
     // Reload data
     await loadVehicles();
@@ -759,7 +796,7 @@ async function saveService() {
 
     // Reset form
     resetChecklist();
-    document.getElementById('smLainnya').value = '';
+    resetLainnya();
     document.getElementById('smCatatan').value = '';
     document.getElementById('smTanggal').value = new Date().toISOString().split('T')[0];
 
@@ -770,7 +807,8 @@ async function saveService() {
 
 async function updateKm(id) {
   const v = vehicles.find(x => x.id === id); if (!v) return;
-  const kmBaru = prompt(`Update KM untuk ${v.plate} (${v.type})\n\nKM saat ini: ${v.km.toLocaleString('id-ID')} km\nTarget service: ${(v.kmServiceStart + 10000).toLocaleString('id-ID')} km\n\nMasukkan KM odometer terbaru:`, v.km);
+  const interval = window.getServiceInterval(v.jenis);
+  const kmBaru = prompt(`Update KM untuk ${v.plate} (${v.type})\n\nKM saat ini: ${v.km.toLocaleString('id-ID')} km\nTarget service: ${(v.kmServiceStart + interval).toLocaleString('id-ID')} km\n\nMasukkan KM odometer terbaru:`, v.km);
   if (!kmBaru) return;
   const kmNum = parseInt(kmBaru.replace(/\D/g, ''));
   if (isNaN(kmNum) || kmNum < 0) { toast('KM tidak valid', 'Masukkan angka KM yang benar', 'warning'); return; }
@@ -781,7 +819,7 @@ async function updateKm(id) {
   try {
     const { error } = await supabaseClient.from('kendaraan').update({ km: kmNum }).eq('id', id);
     if (error) throw error;
-    const kmStatus = window.getServiceKmStatus(kmNum, v.kmServiceStart);
+    const kmStatus = window.getServiceKmStatus(kmNum, v.kmServiceStart, v.jenis);
     toast('KM diperbarui', `${v.plate}: ${kmNum.toLocaleString('id-ID')} km — ${kmStatus.label}`);
     await loadVehicles();
   } catch (err) { toast('Gagal', err.message, 'danger'); }
@@ -789,12 +827,13 @@ async function updateKm(id) {
 
 async function resetService(id) {
   const v = vehicles.find(x => x.id === id); if (!v) return;
-  const konfirm = confirm(`Reset service untuk ${v.plate}?\n\nIni akan set KM Awal Service = ${v.km.toLocaleString('id-ID')} km (KM saat ini)\nTarget service berikutnya = ${(v.km + 10000).toLocaleString('id-ID')} km\n\nLanjutkan?`);
+  const intervalReset = window.getServiceInterval(v.jenis);
+  const konfirm = confirm(`Reset service untuk ${v.plate}?\n\nIni akan set KM Awal Service = ${v.km.toLocaleString('id-ID')} km (KM saat ini)\nTarget service berikutnya = ${(v.km + intervalReset).toLocaleString('id-ID')} km\n\nLanjutkan?`);
   if (!konfirm) return;
   try {
     const { error } = await supabaseClient.from('kendaraan').update({ km_service_start: v.km }).eq('id', id);
     if (error) throw error;
-    toast('Service direset', `${v.plate}: target berikutnya ${(v.km + 10000).toLocaleString('id-ID')} km`);
+    toast('Service direset', `${v.plate}: target berikutnya ${(v.km + intervalReset).toLocaleString('id-ID')} km`);
     await loadVehicles();
   } catch (err) { toast('Gagal', err.message, 'danger'); }
 }

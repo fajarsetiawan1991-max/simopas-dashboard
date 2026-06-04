@@ -126,12 +126,18 @@ window.uiToDb = function(v) {
 };
 
 // Helper: hitung status service berdasarkan KM
-window.getServiceKmStatus = function(km, kmServiceStart) {
-  const KM_INTERVAL = 10000;
-  const KM_NOTIF_THRESHOLD = 500;
+// Interval service otomatis berdasarkan jenis kendaraan
+window.getServiceInterval = function(jenis) {
+  if (!jenis) return 10000;
+  return jenis.toLowerCase() === 'motor' ? 3000 : 10000;
+};
+
+window.getServiceKmStatus = function(km, kmServiceStart, jenis) {
+  const KM_INTERVAL = window.getServiceInterval(jenis);
+  const KM_NOTIF_THRESHOLD = Math.round(KM_INTERVAL * 0.1); // 10% dari interval
   const kmTarget = (kmServiceStart || 0) + KM_INTERVAL;
   const kmSisa = kmTarget - (km || 0);
-  const kmProgress = Math.min(100, Math.max(0, ((km - kmServiceStart) / KM_INTERVAL) * 100));
+  const kmProgress = Math.min(100, Math.max(0, ((km - (kmServiceStart||0)) / KM_INTERVAL) * 100));
 
   let status, color, label;
   if (kmSisa <= 0) {
@@ -145,7 +151,7 @@ window.getServiceKmStatus = function(km, kmServiceStart) {
     label = `Sisa ${kmSisa.toLocaleString('id-ID')} km`;
   }
 
-  return { kmTarget, kmSisa, kmProgress, status, color, label };
+  return { kmTarget, kmSisa, kmProgress, status, color, label, KM_INTERVAL };
 };
 
 // ============= AUTH =============
