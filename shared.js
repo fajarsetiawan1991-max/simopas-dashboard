@@ -296,16 +296,17 @@ window.toast = function(title, msg, type = 'success') {
 };
 
 // ============= LOG AKTIVITAS =============
-window.logActivity = async function(aksi, detail = '', kendaraan_id = null) {
+window.logActivity = async function(aksi, detail = '', kendaraan_id = null, modul = 'Kendaraan') {
   try {
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     const user = session?.user;
     await window.supabaseClient.from('aktivitas_log').insert({
       aksi,
       detail,
-      kendaraan_id,
+      modul,
+      kendaraan_id: kendaraan_id || null,
       user_email: user?.email || 'system',
-      created_at: new Date().toISOString(),
+      user_name: user?.email?.split('@')[0] || 'system',
     });
   } catch (e) {
     console.warn('logActivity error:', e.message);
