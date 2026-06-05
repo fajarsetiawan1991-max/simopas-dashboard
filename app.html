@@ -881,7 +881,19 @@ async function sendNotif(id) {
 }
 
 document.getElementById('searchInput').oninput = (e) => { searchTerm = e.target.value; render(); };
-document.getElementById('modal').onclick = (e) => { if (e.target.id === 'modal') closeModal(); };
+
+// Fix: pakai mousedown tracking supaya select text di dalam modal tidak tutup modal
+let modalMousedownTarget = null;
+document.getElementById('modal').addEventListener('mousedown', (e) => {
+  modalMousedownTarget = e.target;
+});
+document.getElementById('modal').addEventListener('click', (e) => {
+  // Tutup hanya kalau mousedown DAN mouseup keduanya di overlay (bukan di konten)
+  if (e.target.id === 'modal' && modalMousedownTarget && modalMousedownTarget.id === 'modal') {
+    closeModal();
+  }
+  modalMousedownTarget = null;
+});
 
 (async function init() {
   const user = await simopasInit('dashboard');
