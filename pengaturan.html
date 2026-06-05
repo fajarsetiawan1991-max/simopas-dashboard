@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pengaturan — SIMOPAS</title>
+<title>Pengaturan \u2014 SIMOPAS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -83,13 +83,12 @@
 
             <div style="background:var(--bg-elev);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;">
               <strong style="font-size:13px;display:block;margin-bottom:10px;">Tambah Admin Baru</strong>
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                <input type="text" id="newAdminName" placeholder="Nama admin" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;">
-                <input type="text" id="newAdminChatId" placeholder="Telegram Chat ID (opsional)" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;">
-                <input type="email" id="newAdminEmail" placeholder="Email admin (opsional)" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;">
-                <button class="btn btn-primary" onclick="addAdmin()" style="align-self:flex-start;">+ Tambah Admin</button>
+              <div class="form-row">
+                <input type="text" id="newAdminName" placeholder="Nama admin">
+                <input type="text" id="newAdminChatId" placeholder="Telegram Chat ID">
+                <button class="btn btn-primary" onclick="addAdmin()">+ Tambah</button>
               </div>
-              <small style="font-size:11px;color:var(--text-mute);margin-top:8px;display:block;">Minimal salah satu Chat ID atau Email harus diisi. <a href="start-bot.html" target="_blank" style="color:var(--accent);">Panduan Chat ID</a></small>
+              <small style="font-size:11px;color:var(--text-mute);">Admin harus chat bot dulu untuk dapat Chat ID. <a href="start-bot.html" target="_blank" style="color:var(--accent);">Lihat panduan</a></small>
             </div>
 
             <div id="adminList" class="admin-list"></div>
@@ -101,7 +100,7 @@
           <div class="card">
             <div class="card-header"><h3 class="card-title">Jadwal Cron Job</h3></div>
 
-            <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:var(--success);">● AKTIF</span></div>
+            <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:var(--success);">\u25cf AKTIF</span></div>
             <div class="info-row"><span class="info-label">Jadwal kirim</span><span class="info-value">Setiap hari, 08:00 WIB</span></div>
             <div class="info-row"><span class="info-label">Zona waktu server</span><span class="info-value">UTC (08:00 WIB = 01:00 UTC)</span></div>
             <div class="info-row"><span class="info-label">Cron expression</span><span class="info-value">0 1 * * *</span></div>
@@ -109,7 +108,7 @@
             <div class="info-row"><span class="info-label">Tipe pengingat</span><span class="info-value">Pajak, STNK, Service</span></div>
 
             <div style="background:rgba(255, 159, 67, 0.08);border:1px solid rgba(255, 159, 67, 0.2);border-left:3px solid var(--warning);border-radius:8px;padding:14px;margin-top:16px;font-size:12px;color:var(--text-dim);">
-              <strong style="color:var(--warning);">📝 Cara Mengubah Jadwal</strong><br><br>
+              <strong style="color:var(--warning);">\ud83d\udcdd Cara Mengubah Jadwal</strong><br><br>
               Untuk mengubah jadwal kirim, edit file <code style="background:var(--bg);padding:2px 6px;border-radius:4px;color:var(--accent);">vercel.json</code> di GitHub:
               <div class="code-snippet" style="margin-top:8px;">
 {
@@ -120,10 +119,10 @@
 }</div>
               <br>
               Konversi ke UTC (kurangi 7 jam dari WIB):<br>
-              • 07:00 WIB = "0 0 * * *"<br>
-              • 08:00 WIB = "0 1 * * *"<br>
-              • 09:00 WIB = "0 2 * * *"<br>
-              • 10:00 WIB = "0 3 * * *"
+              \u2022 07:00 WIB = "0 0 * * *"<br>
+              \u2022 08:00 WIB = "0 1 * * *"<br>
+              \u2022 09:00 WIB = "0 2 * * *"<br>
+              \u2022 10:00 WIB = "0 3 * * *"
             </div>
           </div>
         </div>
@@ -131,10 +130,7 @@
         <!-- TAB: SYSTEM -->
         <div class="tab-pane" id="tab-system">
           <div class="card">
-            <div class="card-header"><h3 class="card-title">Informasi Sistem</h3></div>
-
-            <div class="info-row"><span class="info-label">Versi SIMOPAS</span><span class="info-value">v4.0</span></div>
-            <div class="info-row"><span class="info-label">Total Kendaraan</span><span class="info-value" id="infoTotal">-</span></div>
+            <div class="card-header"><h3 class="card-title">Informasi Sistem</h3></div>            <div class="info-row"><span class="info-label">Total Kendaraan</span><span class="info-value" id="infoTotal">-</span></div>
             <div class="info-row"><span class="info-label">Total PJ Aktif</span><span class="info-value" id="infoPj">-</span></div>
             <div class="info-row"><span class="info-label">PJ Sudah Daftar Bot</span><span class="info-value" id="infoBotReady">-</span></div>
             <div class="info-row"><span class="info-label">Total Notifikasi Terkirim</span><span class="info-value" id="infoNotif">-</span></div>
@@ -153,7 +149,7 @@
 
           <div class="card" style="margin-top:16px;">
             <div class="card-header"><h3 class="card-title">Dokumentasi</h3></div>
-            <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">SIMOPAS adalah Sistem Monitoring Pajak & Service Kendaraan Dinas untuk Kanim. Dibangun dengan:</p>
+            <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">SIMOPAS adalah Sistem Monitoring Pajak & Service Kendaraan Dinas untuk Kanwil Ditjenim Kalteng. Dibangun dengan:</p>
             <ul style="font-size:12px;color:var(--text-dim);padding-left:20px;line-height:2;">
               <li>Frontend: HTML + Vanilla JavaScript</li>
               <li>Backend: Vercel Serverless Functions (Node.js)</li>
@@ -196,12 +192,7 @@ async function loadAdmins() {
       <div class="admin-avatar">${getInitials(a.nama)}</div>
       <div class="admin-info">
         <div class="admin-name">${a.nama}</div>
-        <div class="admin-chat-id">
-          ${a.telegram_chat_id ? `📨 Telegram: ${a.telegram_chat_id}` : ''}
-          ${a.telegram_chat_id && a.email ? ' • ' : ''}
-          ${a.email ? `✉️ ${a.email}` : ''}
-          ${!a.telegram_chat_id && !a.email ? '(belum ada kontak)' : ''}
-        </div>
+        <div class="admin-chat-id">Chat ID: ${a.telegram_chat_id}</div>
       </div>
       <span class="status-badge ${a.aktif ? 'status-active' : 'status-expired'}">${a.aktif ? 'AKTIF' : 'NONAKTIF'}</span>
       <button class="icon-btn danger" onclick="deleteAdmin(${a.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
@@ -212,20 +203,12 @@ async function loadAdmins() {
 async function addAdmin() {
   const nama = document.getElementById('newAdminName').value.trim();
   const chatId = document.getElementById('newAdminChatId').value.trim();
-  const email = document.getElementById('newAdminEmail').value.trim();
-  if (!nama) { toast('Nama wajib', 'Isi nama admin', 'warning'); return; }
-  if (!chatId && !email) { toast('Kontak wajib', 'Isi minimal salah satu: Chat ID atau Email', 'warning'); return; }
-
-  const insertData = { nama, aktif: true, notif_email: !!email };
-  if (chatId) insertData.telegram_chat_id = chatId;
-  if (email) insertData.email = email;
-
-  const { error } = await supabaseClient.from('admin_chats').insert(insertData);
+  if (!nama || !chatId) { toast('Data belum lengkap', 'Isi nama dan Chat ID', 'warning'); return; }
+  const { error } = await supabaseClient.from('admin_chats').insert({ nama, telegram_chat_id: chatId, aktif: true });
   if (error) { toast('Gagal tambah', error.message, 'danger'); return; }
   toast('Admin ditambahkan', nama);
   document.getElementById('newAdminName').value = '';
   document.getElementById('newAdminChatId').value = '';
-  document.getElementById('newAdminEmail').value = '';
   await loadAdmins();
 }
 
