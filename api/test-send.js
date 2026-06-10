@@ -1,16 +1,18 @@
-// API: Test Kirim Notifikasi Manual
-// Dipanggil dari dashboard saat klik tombol "Kirim Notif"
-// POST /api/test-send dengan body: { kendaraan_id, tipe }
+// API: Test Kirim Notifikasi Manual (Telegram + Email)
+// POST /api/test-send body: { kendaraan_id, tipe, channel }
 
 import { createClient } from '@supabase/supabase-js';
+import nodemailer from 'nodemailer';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const GMAIL_USER = process.env.GMAIL_USER;
+const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+const FROM_NAME = process.env.FROM_NAME || 'SIMOPAS Kanwil Ditjenim Kalteng';
 
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
-// ORIGIN_LABELS terbaru — sync dengan shared.js
 const ORIGIN_LABELS = {
   ditjenim: 'Ditjenim Pusat',
   kanwil_ditjenim: 'Kanwil Ditjenim Kalteng',
@@ -22,8 +24,7 @@ const ORIGIN_LABELS = {
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 function daysUntil(dateStr) {
@@ -43,54 +44,78 @@ function getTipeInfo(tipe) {
   return map[tipe] || null;
 }
 
-// Escape karakter khusus HTML untuk Telegram HTML mode
 function escHtml(str) {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function buildPesan(kendaraan, tipe) {
-  const tipeInfo = getTipeInfo(tipe);
-  if (!tipeInfo) return null;
+function getUrgency(hariSisa) {
+  if (hariSisa < 0)  return `SUDAH LEWAT ${Math.abs(hariSisa)} HARI`;
+  if (hariSisa === 0) return 'HARI INI';
+  if (hariSisa === 1) return 'BESOK';
+  return `${hariSisa} HARI LAGI`;
+}
 
-  const dueDate = kendaraan[tipeInfo.dateKey];
+function buildPesanTelegram(k, tipe) {
+  const t = getTipeInfo(tipe);
+  const dueDate = k[t.dateKey];
   const hariSisa = daysUntil(dueDate);
-
   if (hariSisa === null) return null;
+  const urgency = getUrgency(hariSisa);
+  const asalLabel = escHtml(ORIGIN_LABELS[k.asal] || k.asal);
 
-  let urgencyLabel;
-  if (hariSisa < 0)      urgencyLabel = `SUDAH LEWAT ${Math.abs(hariSisa)} HARI`;
-  else if (hariSisa === 0) urgencyLabel = 'HARI INI';
-  else if (hariSisa === 1) urgencyLabel = 'BESOK';
-  else                    urgencyLabel = `${hariSisa} HARI LAGI`;
+  let p = `🔔 <b>PENGINGAT ${t.label}</b>\n\n`;
+  p += `Kepada Yth.\n<b>Bapak/Ibu ${escHtml(k.pj)}</b>\n\nDengan hormat,\n\n`;
+  p += `${t.icon} ${t.label} kendaraan dinas yang Bapak/Ibu pegang:\n\n`;
+  p += `📋 <b>Detail Kendaraan:</b>\n`;
+  p += `• No. Polisi: <code>${escHtml(k.plate)}</code>\n`;
+  p += `• Kendaraan: ${escHtml(k.type)}\n`;
+  p += `• Jenis: ${escHtml(k.jenis)}\n`;
+  p += `• Asal: ${asalLabel}\n\n`;
+  p += `📅 <b>Jatuh Tempo:</b>\n${formatDate(dueDate)} <b>(${urgency})</b>\n\n`;
+  if (tipe === 'service' && k.km) p += `🛣 <b>Kilometer saat ini:</b> ${k.km.toLocaleString('id-ID')} km\n\n`;
+  p += `⚠️ Mohon segera proses ${t.action} agar tidak terkena denda atau masalah operasional.\n\n`;
+  p += `<i>— Hormat kami, Tim SIMOPAS Kanwil Ditjenim Kalteng</i>`;
+  return p;
+}
 
-  const asalLabel = escHtml(ORIGIN_LABELS[kendaraan.asal] || kendaraan.asal);
+function buildEmailHtml(k, tipe) {
+  const t = getTipeInfo(tipe);
+  const dueDate = k[t.dateKey];
+  const hariSisa = daysUntil(dueDate);
+  if (hariSisa === null) return null;
+  const urgency = getUrgency(hariSisa);
+  const uc = hariSisa < 0 ? '#DC2626' : hariSisa <= 7 ? '#F59E0B' : '#059669';
+  const asalLabel = escHtml(ORIGIN_LABELS[k.asal] || k.asal);
+  const kmRow = (tipe === 'service' && k.km)
+    ? `<tr><td style="padding:10px 0;color:#6b7280;font-size:12px;font-weight:600;">Kilometer</td><td style="padding:10px 0;font-size:14px;font-weight:600;">${k.km.toLocaleString('id-ID')} km</td></tr>`
+    : '';
 
-  // Gunakan HTML mode — jauh lebih aman dari Markdown
-  let pesan = `🔔 <b>PENGINGAT ${tipeInfo.label}</b>\n\n`;
-  pesan += `Kepada Yth.\n`;
-  pesan += `<b>Bapak/Ibu ${escHtml(kendaraan.pj)}</b>\n\n`;
-  pesan += `Dengan hormat,\n\n`;
-  pesan += `${tipeInfo.icon} ${tipeInfo.label} kendaraan dinas yang Bapak/Ibu pegang:\n\n`;
-  pesan += `📋 <b>Detail Kendaraan:</b>\n`;
-  pesan += `• No. Polisi: <code>${escHtml(kendaraan.plate)}</code>\n`;
-  pesan += `• Kendaraan: ${escHtml(kendaraan.type)}\n`;
-  pesan += `• Jenis: ${escHtml(kendaraan.jenis)}\n`;
-  pesan += `• Asal: ${asalLabel}\n\n`;
-  pesan += `📅 <b>Jatuh Tempo:</b>\n`;
-  pesan += `${formatDate(dueDate)} <b>(${urgencyLabel})</b>\n\n`;
-
-  if (tipe === 'service' && kendaraan.km) {
-    pesan += `🛣 <b>Kilometer saat ini:</b> ${kendaraan.km.toLocaleString('id-ID')} km\n\n`;
-  }
-
-  pesan += `⚠️ Mohon segera proses ${tipeInfo.action} agar tidak terkena denda atau masalah operasional.\n\n`;
-  pesan += `<i>— Hormat kami, Tim SIMOPAS Kanwil Ditjenim Kalteng</i>`;
-
-  return pesan;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#f4f4f5;line-height:1.6;">
+<div style="max-width:620px;margin:20px auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+<div style="background:linear-gradient(135deg,#1E3A8A,#4338ca);padding:32px 24px;color:white;text-align:center;">
+<div style="font-size:36px;margin-bottom:8px;">${t.icon}</div>
+<h1 style="margin:0;font-size:24px;font-weight:700;">Pengingat ${t.label}</h1>
+<div style="margin-top:8px;font-size:13px;opacity:0.9;">SIMOPAS — Kanwil Ditjenim Kalteng</div></div>
+<div style="background:${uc};color:white;text-align:center;padding:14px;font-weight:700;font-size:14px;">⚠️ ${urgency}</div>
+<div style="padding:32px 28px;color:#1f2937;">
+<p style="margin:0 0 4px;font-size:14px;font-weight:600;">Kepada Yth.</p>
+<p style="margin:0 0 20px;font-size:16px;font-weight:700;color:#1E3A8A;">Bapak/Ibu ${escHtml(k.pj)}</p>
+<p style="margin:0 0 14px;font-size:14px;">Dengan hormat,</p>
+<p style="margin:0 0 14px;font-size:14px;text-align:justify;">${t.label} kendaraan dinas yang Bapak/Ibu pegang akan segera jatuh tempo.</p>
+<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px 24px;margin:20px 0;">
+<table style="width:100%;border-collapse:collapse;">
+<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;width:140px;">No. Polisi</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;"><span style="background:white;border:2px solid #000;padding:6px 12px;font-family:monospace;font-weight:700;letter-spacing:2px;border-radius:4px;font-size:16px;">${escHtml(k.plate)}</span></td></tr>
+<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;">Kendaraan</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:600;">${escHtml(k.type)}</td></tr>
+<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;">Asal</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:600;">${asalLabel}</td></tr>
+<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;">Jatuh Tempo</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:700;color:${uc};">${formatDate(dueDate)}</td></tr>
+${kmRow}
+</table></div>
+<p style="margin:18px 0;font-size:14px;text-align:justify;">Mohon segera proses ${t.action} agar tidak terkena denda atau kendala operasional.</p>
+<div style="margin-top:32px;font-size:14px;"><div>Demikian, terima kasih.</div><div style="margin-top:16px;color:#6b7280;">Hormat kami,</div><div style="font-weight:700;color:#1E3A8A;margin-top:2px;">Tim SIMOPAS Kanwil Ditjenim Kalteng</div></div></div>
+<div style="background:#f9fafb;padding:18px 24px;text-align:center;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;">Email otomatis dari <strong style="color:#1E3A8A;">SIMOPAS</strong></div>
+</div></body></html>`;
 }
 
 async function sendTelegram(chatId, text) {
@@ -98,14 +123,26 @@ async function sendTelegram(chatId, text) {
     const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text,
-        parse_mode: 'HTML',  // HTML lebih aman dari Markdown
-      }),
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
     });
     const data = await res.json();
     return { success: data.ok, error: data.description };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+async function sendEmail(to, subject, html) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    });
+    await transporter.sendMail({
+      from: `"${FROM_NAME}" <${GMAIL_USER}>`,
+      to, subject, html,
+    });
+    return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -120,57 +157,71 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
 
   const token = authHeader.replace('Bearer ', '');
   const supabaseAuth = createClient(SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
   const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
-
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-  const { kendaraan_id, tipe } = req.body;
+  const { kendaraan_id, tipe, channel = 'telegram' } = req.body;
 
   if (!kendaraan_id || !tipe) return res.status(400).json({ error: 'kendaraan_id dan tipe wajib diisi' });
   if (!['pajak', 'stnk', 'service'].includes(tipe)) return res.status(400).json({ error: 'tipe harus pajak, stnk, atau service' });
+  if (!['telegram', 'email'].includes(channel)) return res.status(400).json({ error: 'channel harus telegram atau email' });
 
   try {
-    const { data: kendaraan, error: errK } = await supabase
+    const { data: k, error: errK } = await supabase
       .from('kendaraan').select('*').eq('id', kendaraan_id).single();
+    if (errK || !k) return res.status(404).json({ error: 'Kendaraan tidak ditemukan' });
 
-    if (errK || !kendaraan) return res.status(404).json({ error: 'Kendaraan tidak ditemukan' });
+    const tipeInfo = getTipeInfo(tipe);
+    const hariSisa = daysUntil(k[tipeInfo.dateKey]);
 
-    if (!kendaraan.telegram_chat_id) {
-      return res.status(400).json({
-        error: 'PJ belum mendaftar di bot Telegram. Minta PJ chat bot dulu untuk dapatkan Chat ID.'
-      });
+    let result;
+    let pesanLog;
+
+    if (channel === 'telegram') {
+      if (!k.telegram_chat_id) {
+        return res.status(400).json({ error: 'PJ belum punya Telegram Chat ID. Minta PJ chat bot dulu.' });
+      }
+      const pesan = buildPesanTelegram(k, tipe);
+      if (!pesan) return res.status(400).json({ error: `Tanggal ${tipe} belum diisi` });
+      result = await sendTelegram(k.telegram_chat_id, pesan);
+      pesanLog = pesan;
+    } else {
+      // EMAIL
+      if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
+        return res.status(500).json({ error: 'Email belum dikonfigurasi. Set GMAIL_USER dan GMAIL_APP_PASSWORD di Vercel.' });
+      }
+      if (!k.email) {
+        return res.status(400).json({ error: 'Kendaraan ini belum punya Email PJ. Edit kendaraan dan isi email dulu.' });
+      }
+      const html = buildEmailHtml(k, tipe);
+      if (!html) return res.status(400).json({ error: `Tanggal ${tipe} belum diisi` });
+      const subject = `${tipeInfo.icon} Pengingat ${tipeInfo.label}: ${k.plate} (${getUrgency(hariSisa)})`;
+      result = await sendEmail(k.email, subject, html);
+      pesanLog = subject;
     }
 
-    const pesan = buildPesan(kendaraan, tipe);
-    if (!pesan) return res.status(400).json({ error: `Tanggal ${tipe} belum diisi di kendaraan ini` });
-
-    const result = await sendTelegram(kendaraan.telegram_chat_id, pesan);
-
     await supabase.from('notifikasi_log').insert({
-      kendaraan_id: kendaraan.id,
+      kendaraan_id: k.id,
       tipe,
-      hari_ke: daysUntil(kendaraan[getTipeInfo(tipe).dateKey]),
-      channel: 'telegram',
+      hari_ke: hariSisa,
+      channel,
       status: result.success ? 'sent' : 'failed',
-      pesan,
+      pesan: pesanLog,
       error_msg: result.error,
     });
 
     if (result.success) {
       await supabase.from('kendaraan')
         .update({ last_sent: new Date().toISOString().split('T')[0] })
-        .eq('id', kendaraan.id);
-
-      return res.status(200).json({ success: true, message: `Pengingat ${tipe} terkirim ke ${kendaraan.pj}` });
+        .eq('id', k.id);
+      return res.status(200).json({ success: true, message: `Pengingat ${tipe} terkirim via ${channel} ke ${k.pj}` });
     } else {
-      return res.status(500).json({ success: false, error: result.error || 'Gagal kirim Telegram' });
+      return res.status(500).json({ success: false, error: result.error || `Gagal kirim ${channel}` });
     }
   } catch (err) {
     console.error(err);
