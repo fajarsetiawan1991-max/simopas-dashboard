@@ -9,7 +9,51 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
 <style>
-/* ===== MODAL SERVICE ===== */
+/* ===== MODAL NOTIF ===== */
+#notifModal {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+#notifModal.show { opacity: 1; pointer-events: all; }
+.notif-modal-inner {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 16px; width: 100%; max-width: 400px;
+  padding: 24px; transform: scale(0.96);
+  transition: transform 0.2s ease;
+}
+#notifModal.show .notif-modal-inner { transform: scale(1); }
+.notif-modal-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 18px; color: var(--text); margin-bottom: 4px;
+}
+.notif-modal-title em { color: var(--accent); font-style: italic; }
+.notif-modal-sub { font-size: 12px; color: var(--text-mute); margin-bottom: 20px; }
+.notif-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-mute); margin-bottom: 8px;
+}
+.notif-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.notif-btn-group.three { grid-template-columns: 1fr 1fr 1fr; }
+.notif-choice {
+  background: var(--bg-elev); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 12px 10px;
+  cursor: pointer; transition: all 0.15s;
+  text-align: center; color: var(--text-dim);
+  font-size: 12px; font-weight: 600;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+}
+.notif-choice:hover { border-color: var(--accent); color: var(--text); }
+.notif-choice.selected {
+  background: rgba(201,168,76,0.1);
+  border-color: var(--accent); color: var(--accent);
+}
+.notif-choice .nc-icon { font-size: 20px; }
+.notif-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
 #serviceModal {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
@@ -221,6 +265,42 @@ table { min-width: 1100px; }
 </div>
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- MODAL NOTIF -->
+<div id="notifModal">
+  <div class="notif-modal-inner">
+    <div class="notif-modal-title">Kirim <em>Notifikasi</em></div>
+    <div class="notif-modal-sub" id="notifModalSub">—</div>
+
+    <div class="notif-section-label">Tipe Pengingat</div>
+    <div class="notif-btn-group three" id="notifTipeGroup">
+      <div class="notif-choice selected" data-val="pajak" onclick="selectNotif('tipe', this)">
+        <span class="nc-icon">💰</span>Pajak
+      </div>
+      <div class="notif-choice" data-val="stnk" onclick="selectNotif('tipe', this)">
+        <span class="nc-icon">📄</span>STNK
+      </div>
+      <div class="notif-choice" data-val="service" onclick="selectNotif('tipe', this)">
+        <span class="nc-icon">🔧</span>Service
+      </div>
+    </div>
+
+    <div class="notif-section-label">Kirim Via</div>
+    <div class="notif-btn-group" id="notifChannelGroup">
+      <div class="notif-choice selected" data-val="telegram" onclick="selectNotif('channel', this)">
+        <span class="nc-icon">✈️</span>Telegram
+      </div>
+      <div class="notif-choice" data-val="email" onclick="selectNotif('channel', this)">
+        <span class="nc-icon">📧</span>Email
+      </div>
+    </div>
+
+    <div class="notif-footer">
+      <button class="btn" onclick="closeNotifModal()">Batal</button>
+      <button class="btn btn-primary" onclick="submitNotif()">Kirim</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL SERVICE -->
 <div id="serviceModal">
@@ -843,42 +923,77 @@ async function resetService(id) {
   } catch (err) { toast('Gagal', err.message, 'danger'); }
 }
 
-async function sendNotif(id) {
+// ============ MODAL NOTIF ============
+let notifVehicleId = null;
+let notifSelected = { tipe: 'pajak', channel: 'telegram' };
+
+function selectNotif(group, el) {
+  const parent = el.parentElement;
+  parent.querySelectorAll('.notif-choice').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  notifSelected[group] = el.dataset.val;
+}
+
+function openNotifModal(id) {
   const v = vehicles.find(x => x.id === id); if (!v) return;
+  notifVehicleId = id;
+  notifSelected = { tipe: 'pajak', channel: 'telegram' };
 
-  // Pilih channel
-  let channel = prompt(`Kirim via apa untuk ${v.plate}?\n\nKetik: telegram atau email`, 'telegram');
-  if (!channel) return;
-  channel = channel.toLowerCase().trim();
-  if (!['telegram','email'].includes(channel)) { toast('Channel salah', 'Hanya telegram atau email', 'warning'); return; }
+  // Reset pilihan ke default
+  document.querySelectorAll('#notifTipeGroup .notif-choice').forEach(b => {
+    b.classList.toggle('selected', b.dataset.val === 'pajak');
+  });
+  document.querySelectorAll('#notifChannelGroup .notif-choice').forEach(b => {
+    b.classList.toggle('selected', b.dataset.val === 'telegram');
+  });
 
-  // Validasi channel
-  if (channel === 'telegram') {
-    if (!v.notifTg) { toast('Telegram tidak aktif', 'Aktifkan di edit kendaraan', 'warning'); return; }
-    if (!v.telegramChatId) { toast('Chat ID kosong', `${v.pj} belum chat bot`, 'warning'); return; }
-  } else {
-    if (!v.notifEmail) { toast('Email tidak aktif', 'Aktifkan di edit kendaraan', 'warning'); return; }
-    if (!v.email) { toast('Email kosong', `${v.pj} belum punya email`, 'warning'); return; }
+  document.getElementById('notifModalSub').textContent = `${v.plate} — ${v.pj}`;
+  document.getElementById('notifModal').classList.add('show');
+}
+
+function closeNotifModal() {
+  document.getElementById('notifModal').classList.remove('show');
+  notifVehicleId = null;
+}
+
+async function submitNotif() {
+  const id = notifVehicleId; if (!id) return;
+  const v = vehicles.find(x => x.id === id); if (!v) return;
+  const { tipe, channel } = notifSelected;
+
+  // Validasi
+  if (channel === 'telegram' && !v.telegramChatId) {
+    toast('Chat ID kosong', 'PJ belum punya Telegram Chat ID. Edit kendaraan dulu.', 'warning');
+    return;
+  }
+  if (channel === 'email' && !v.email) {
+    toast('Email kosong', 'PJ belum punya email. Edit kendaraan dulu.', 'warning');
+    return;
   }
 
-  // Pilih tipe
-  const tipe = prompt(`Tipe pengingat apa?\n\nKetik: pajak, stnk, atau service`, 'pajak');
-  if (!tipe) return;
-  if (!['pajak','stnk','service'].includes(tipe.toLowerCase())) { toast('Tipe salah', '', 'warning'); return; }
-
+  closeNotifModal();
   toast('Mengirim...', `Via ${channel} ke ${v.pj}`, 'info');
+
   try {
     const { data: { session } } = await supabaseClient.auth.getSession();
-    const res = await fetch('/api/test-send', {
+    const response = await fetch('/api/test-send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-      body: JSON.stringify({ kendaraan_id: id, tipe: tipe.toLowerCase(), channel }),
+      body: JSON.stringify({ kendaraan_id: id, tipe, channel }),
     });
-    const result = await res.json();
-    if (result.success) { toast('Terkirim', `Via ${channel} ke ${v.pj}`); await loadVehicles(); }
-    else { toast('Gagal', result.error, 'danger'); }
-  } catch (err) { toast('Gagal', err.message, 'danger'); }
+    const result = await response.json();
+    if (result.success) {
+      toast('Terkirim ✓', `${tipe} via ${channel} ke ${v.pj}`);
+      await loadVehicles();
+    } else {
+      toast('Gagal', result.error, 'danger');
+    }
+  } catch (err) {
+    toast('Gagal', err.message, 'danger');
+  }
 }
+
+function sendNotif(id) { openNotifModal(id); }
 
 document.getElementById('searchInput').oninput = (e) => { searchTerm = e.target.value; render(); };
 
@@ -893,6 +1008,9 @@ document.getElementById('modal').addEventListener('click', (e) => {
     closeModal();
   }
   modalMousedownTarget = null;
+});
+document.getElementById('notifModal').addEventListener('click', (e) => {
+  if (e.target.id === 'notifModal') closeNotifModal();
 });
 
 (async function init() {
