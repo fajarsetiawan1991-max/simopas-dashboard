@@ -219,6 +219,36 @@ export default async function handler(req, res) {
       await supabase.from('kendaraan')
         .update({ last_sent: new Date().toISOString().split('T')[0] })
         .eq('id', k.id);
+
+      // === CC KE SEMUA ADMIN AKTIF ===
+      const { data: admins } = await supabase
+        .from('admin_chats')
+        .select('*')
+        .eq('aktif', true);
+
+      if (admins && admins.length > 0) {
+        for (const admin of admins) {
+          // CC via Telegram ke admin
+          if (admin.telegram_chat_id) {
+            const tgId = String(admin.telegram_chat_id).replace(/^ID:\s*/i, '').trim();
+            if (tgId) {
+              const pesanAdmin = buildPesanTelegram(k, tipe);
+              if (pesanAdmin) await sendTelegram(tgId, pesanAdmin);
+              await new Promise(r => setTimeout(r, 100));
+            }
+          }
+          // CC via Email ke admin
+          if (admin.email && GMAIL_USER && GMAIL_APP_PASSWORD) {
+            const htmlAdmin = buildEmailHtml(k, tipe);
+            if (htmlAdmin) {
+              const subjAdmin = `${tipeInfo.icon} [CC Admin] Pengingat ${tipeInfo.label}: ${k.plate} → ${k.pj}`;
+              await sendEmail(admin.email, subjAdmin, htmlAdmin);
+              await new Promise(r => setTimeout(r, 300));
+            }
+          }
+        }
+      }
+
       return res.status(200).json({ success: true, message: `Pengingat ${tipe} terkirim via ${channel} ke ${k.pj}` });
     } else {
       return res.status(500).json({ success: false, error: result.error || `Gagal kirim ${channel}` });
