@@ -56,8 +56,46 @@ function getUrgency(hariSisa) {
   return `${hariSisa} HARI LAGI`;
 }
 
+// Service berbasis KM: interval otomatis Motor 3.000 / Mobil 10.000
+function getServiceInterval(jenis) {
+  if (!jenis) return 10000;
+  return String(jenis).toLowerCase() === 'motor' ? 3000 : 10000;
+}
+
+function getKmInfo(k) {
+  const interval = getServiceInterval(k.jenis);
+  const kmTarget = (k.km_service_start || 0) + interval;
+  const kmSisa = kmTarget - (k.km || 0);
+  const urgency = kmSisa <= 0
+    ? `SUDAH LEWAT ${Math.abs(kmSisa).toLocaleString('id-ID')} KM`
+    : `SISA ${kmSisa.toLocaleString('id-ID')} KM LAGI`;
+  return { interval, kmTarget, kmSisa, urgency };
+}
+
 function buildPesanTelegram(k, tipe) {
   const t = getTipeInfo(tipe);
+
+  // === SERVICE: berbasis KM, bukan tanggal ===
+  if (tipe === 'service') {
+    const km = getKmInfo(k);
+    const asalLabel = escHtml(ORIGIN_LABELS[k.asal] || k.asal);
+    let p = `🔧 <b>PENGINGAT SERVICE BERKALA</b>\n\n`;
+    p += `Kepada Yth.\n<b>Bapak/Ibu ${escHtml(k.pj)}</b>\n\nDengan hormat,\n\n`;
+    p += `Kendaraan dinas yang Bapak/Ibu pegang perlu diperhatikan jadwal servicenya:\n\n`;
+    p += `📋 <b>Detail Kendaraan:</b>\n`;
+    p += `• No. Polisi: <code>${escHtml(k.plate)}</code>\n`;
+    p += `• Kendaraan: ${escHtml(k.type)}\n`;
+    p += `• Jenis: ${escHtml(k.jenis)}\n`;
+    p += `• Asal: ${asalLabel}\n\n`;
+    p += `🛣 <b>Status Kilometer:</b>\n`;
+    p += `• KM Saat Ini: ${(k.km || 0).toLocaleString('id-ID')} km\n`;
+    p += `• KM Target Service: ${km.kmTarget.toLocaleString('id-ID')} km\n`;
+    p += `• Status: <b>${km.urgency}</b>\n\n`;
+    p += `⚠️ Mohon segera jadwalkan service kendaraan.\n\n`;
+    p += `<i>— Hormat kami, Tim SIMOPAS Kanwil Ditjenim Kalteng</i>`;
+    return p;
+  }
+
   const dueDate = k[t.dateKey];
   const hariSisa = daysUntil(dueDate);
   if (hariSisa === null) return null;
@@ -81,15 +119,25 @@ function buildPesanTelegram(k, tipe) {
 
 function buildEmailHtml(k, tipe) {
   const t = getTipeInfo(tipe);
-  const dueDate = k[t.dateKey];
-  const hariSisa = daysUntil(dueDate);
-  if (hariSisa === null) return null;
-  const urgency = getUrgency(hariSisa);
-  const uc = hariSisa < 0 ? '#DC2626' : hariSisa <= 7 ? '#F59E0B' : '#059669';
+  let urgency, uc, dueDateRow, kmRow = '';
+
+  if (tipe === 'service') {
+    // === SERVICE: berbasis KM ===
+    const km = getKmInfo(k);
+    urgency = km.urgency;
+    uc = km.kmSisa <= 0 ? '#DC2626' : km.kmSisa <= Math.round(km.interval * 0.1) ? '#F59E0B' : '#059669';
+    dueDateRow = `<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;">KM Target Service</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:700;color:${uc};">${km.kmTarget.toLocaleString('id-ID')} km</td></tr>`;
+    kmRow = `<tr><td style="padding:10px 0;color:#6b7280;font-size:12px;font-weight:600;">KM Saat Ini</td><td style="padding:10px 0;font-size:14px;font-weight:600;">${(k.km || 0).toLocaleString('id-ID')} km</td></tr>`;
+  } else {
+    const dueDate = k[t.dateKey];
+    const hariSisa = daysUntil(dueDate);
+    if (hariSisa === null) return null;
+    urgency = getUrgency(hariSisa);
+    uc = hariSisa < 0 ? '#DC2626' : hariSisa <= 7 ? '#F59E0B' : '#059669';
+    dueDateRow = `<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;">Jatuh Tempo</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:700;color:${uc};">${formatDate(dueDate)}</td></tr>`;
+  }
+
   const asalLabel = escHtml(ORIGIN_LABELS[k.asal] || k.asal);
-  const kmRow = (tipe === 'service' && k.km)
-    ? `<tr><td style="padding:10px 0;color:#6b7280;font-size:12px;font-weight:600;">Kilometer</td><td style="padding:10px 0;font-size:14px;font-weight:600;">${k.km.toLocaleString('id-ID')} km</td></tr>`
-    : '';
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;font-family:-apple-system,sans-serif;background:#f4f4f5;line-height:1.6;">
@@ -109,7 +157,7 @@ function buildEmailHtml(k, tipe) {
 <tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;width:140px;">No. Polisi</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;"><span style="background:white;border:2px solid #000;padding:6px 12px;font-family:monospace;font-weight:700;letter-spacing:2px;border-radius:4px;font-size:16px;">${escHtml(k.plate)}</span></td></tr>
 <tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;">Kendaraan</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:600;">${escHtml(k.type)}</td></tr>
 <tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;">Asal</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:600;">${asalLabel}</td></tr>
-<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:12px;font-weight:600;">Jatuh Tempo</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:14px;font-weight:700;color:${uc};">${formatDate(dueDate)}</td></tr>
+${dueDateRow}
 ${kmRow}
 </table></div>
 <p style="margin:18px 0;font-size:14px;text-align:justify;">Mohon segera proses ${t.action} agar tidak terkena denda atau kendala operasional.</p>
@@ -200,7 +248,8 @@ export default async function handler(req, res) {
       }
       const html = buildEmailHtml(k, tipe);
       if (!html) return res.status(400).json({ error: `Tanggal ${tipe} belum diisi` });
-      const subject = `${tipeInfo.icon} Pengingat ${tipeInfo.label}: ${k.plate} (${getUrgency(hariSisa)})`;
+      const urgencyLabel = tipe === 'service' ? getKmInfo(k).urgency : getUrgency(hariSisa);
+      const subject = `Pengingat ${tipeInfo.label}: ${k.plate} (${urgencyLabel})`;
       result = await sendEmail(k.email, subject, html);
       pesanLog = subject;
     }
