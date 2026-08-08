@@ -99,6 +99,8 @@ window.dbToUi = function(row) {
     notifTg: row.notif_tg !== false,
     notifEmail: row.notif_email !== false,
     lastSent: row.last_sent,
+    fotoKendaraan: row.foto_kendaraan || null,
+    fotoStnk: row.foto_stnk || null,
   };
 };
 
@@ -124,7 +126,29 @@ window.uiToDb = function(v) {
     notif_tg: v.notifTg !== false,
     notif_email: v.notifEmail !== false,
     last_sent: v.lastSent || null,
+    foto_kendaraan: v.fotoKendaraan || null,
+    foto_stnk: v.fotoStnk || null,
   };
+};
+
+// Helper: upload foto ke Supabase Storage, return public URL
+window.uploadFoto = async function(file, plate, jenis) {
+  // jenis: 'kendaraan' atau 'stnk'
+  const ext = file.name.split('.').pop().toLowerCase();
+  const safePlate = plate.replace(/[^a-zA-Z0-9]/g, '');
+  const fileName = `${jenis}/${safePlate}-${Date.now()}.${ext}`;
+
+  const { data, error } = await window.supabaseClient.storage
+    .from('kendaraan-photos')
+    .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+  if (error) throw error;
+
+  const { data: urlData } = window.supabaseClient.storage
+    .from('kendaraan-photos')
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
 };
 
 // Helper: hitung status service berdasarkan KM

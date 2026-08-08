@@ -9,7 +9,62 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared.css">
 <style>
-/* ===== MODAL NOTIF ===== */
+/* ===== FOTO THUMBNAIL & LIGHTBOX ===== */
+.foto-thumb-group { display: flex; gap: 6px; }
+.foto-thumb {
+  width: 36px; height: 36px; border-radius: 8px;
+  object-fit: cover; cursor: pointer;
+  border: 1.5px solid var(--border);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.foto-thumb:hover { transform: scale(1.08); border-color: var(--accent); }
+.foto-thumb-empty {
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1.5px dashed var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mute); font-size: 14px;
+}
+.foto-upload-box {
+  border: 1.5px dashed var(--border);
+  border-radius: 10px; padding: 12px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.15s;
+  position: relative; overflow: hidden;
+}
+.foto-upload-box:hover { border-color: var(--accent); }
+.foto-upload-box input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+.foto-upload-preview {
+  width: 100%; height: 100px; object-fit: cover;
+  border-radius: 8px; margin-bottom: 8px; display: none;
+}
+.foto-upload-label {
+  font-size: 12px; color: var(--text-mute);
+}
+.foto-upload-label strong { color: var(--accent); }
+
+#lightbox {
+  position: fixed; inset: 0; z-index: 400;
+  background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+#lightbox.show { opacity: 1; pointer-events: all; }
+#lightbox img {
+  max-width: 90vw; max-height: 85vh;
+  border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+#lightbox .lightbox-close {
+  position: absolute; top: 20px; right: 24px;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); border: none;
+  color: white; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+#lightbox .lightbox-close:hover { background: rgba(255,255,255,0.2); }
+
 #notifModal {
   position: fixed; inset: 0; z-index: 300;
   background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
@@ -253,7 +308,7 @@ table { min-width: 1100px; }
         <table>
           <thead>
             <tr>
-              <th>No</th><th>No. Polisi</th><th>Jenis / Type</th><th>Asal</th><th>Pajak Tahunan</th><th>Sisa</th><th>Service</th><th>PJ</th><th>Status</th><th></th>
+              <th>No</th><th>No. Polisi</th><th>Foto</th><th>Jenis / Type</th><th>Asal</th><th>Pajak Tahunan</th><th>Sisa</th><th>Service</th><th>PJ</th><th>Status</th><th></th>
             </tr>
           </thead>
           <tbody id="tableBody"><tr><td colspan="10" class="loading"><div class="loading-spinner"></div>Memuat data...</td></tr></tbody>
@@ -302,6 +357,12 @@ table { min-width: 1100px; }
   </div>
 </div>
 
+<!-- LIGHTBOX FOTO -->
+<div id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="closeLightbox(event)">✕</button>
+  <img id="lightboxImg" src="" alt="Foto">
+</div>
+
 <!-- MODAL SERVICE -->
 <div id="serviceModal">
   <div class="service-modal-inner">
@@ -315,6 +376,9 @@ table { min-width: 1100px; }
       </button>
     </div>
     <div class="sm-body">
+
+      <!-- Foto Kendaraan & STNK -->
+      <div id="smFotoRow" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;"></div>
 
       <!-- KM Status -->
       <div class="sm-km-status">
@@ -433,7 +497,28 @@ table { min-width: 1100px; }
         </div>
       </div>
       <div class="form-section">
-        <div class="form-section-title"><span class="form-section-num">5</span>Pengaturan Pengingat</div>
+        <div class="form-section-title"><span class="form-section-num">5</span>Foto Dokumentasi</div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Foto Kendaraan</label>
+            <div class="foto-upload-box" id="fotoKendaraanBox">
+              <img class="foto-upload-preview" id="fotoKendaraanPreview">
+              <div class="foto-upload-label" id="fotoKendaraanLabel"><strong>Klik untuk upload</strong><br>JPG/PNG, max 3MB</div>
+              <input type="file" id="f-foto-kendaraan" accept="image/*" onchange="previewFoto(this, 'fotoKendaraan')">
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Foto STNK</label>
+            <div class="foto-upload-box" id="fotoStnkBox">
+              <img class="foto-upload-preview" id="fotoStnkPreview">
+              <div class="foto-upload-label" id="fotoStnkLabel"><strong>Klik untuk upload</strong><br>JPG/PNG, max 3MB</div>
+              <input type="file" id="f-foto-stnk" accept="image/*" onchange="previewFoto(this, 'fotoStnk')">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title"><span class="form-section-num">6</span>Pengaturan Pengingat</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <label class="toggle-card checked" id="toggleNotifTg">
             <input type="checkbox" id="f-notif-tg" checked>
@@ -532,6 +617,10 @@ function render() {
       <tr>
         <td style="color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:11px;">${String(idx + 1).padStart(2, '0')}</td>
         <td><span class="plate">${v.plate}</span></td>
+        <td><div class="foto-thumb-group">
+          ${v.fotoKendaraan ? `<img class="foto-thumb" src="${v.fotoKendaraan}" onclick="openLightbox('${v.fotoKendaraan}')" title="Foto Kendaraan">` : `<div class="foto-thumb-empty" title="Belum ada foto">🚗</div>`}
+          ${v.fotoStnk ? `<img class="foto-thumb" src="${v.fotoStnk}" onclick="openLightbox('${v.fotoStnk}')" title="Foto STNK">` : `<div class="foto-thumb-empty" title="Belum ada foto STNK">📄</div>`}
+        </div></td>
         <td><div class="cell-stack"><span class="cell-primary">${v.type}</span><span class="cell-secondary">${v.jenis.toUpperCase()}</span></div></td>
         <td><span class="origin-tag">${ORIGIN_LABELS[v.asal]}</span></td>
         <td><div class="cell-stack"><span class="cell-primary" style="font-size:12px;">${formatDate(v.pajakDate)}</span><span class="cell-secondary">PJK ${v.noPajak || '-'}</span></div></td>
@@ -584,6 +673,8 @@ function openAddModal() {
   document.getElementById('f-notif-email').checked = true;
   document.getElementById('toggleNotifTg').classList.add('checked');
   document.getElementById('toggleNotifEmail').classList.add('checked');
+  resetFotoField('fotoKendaraan');
+  resetFotoField('fotoStnk');
   document.getElementById('modal').classList.add('show');
 }
 
@@ -611,10 +702,65 @@ function openEditModal(id) {
   document.getElementById('f-notif-email').checked = v.notifEmail !== false;
   document.getElementById('toggleNotifTg').classList.toggle('checked', v.notifTg !== false);
   document.getElementById('toggleNotifEmail').classList.toggle('checked', v.notifEmail !== false);
+  resetFotoField('fotoKendaraan', v.fotoKendaraan);
+  resetFotoField('fotoStnk', v.fotoStnk);
   document.getElementById('modal').classList.add('show');
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+// ============ FOTO UPLOAD ============
+let pendingFotoFiles = { fotoKendaraan: null, fotoStnk: null };
+let existingFotoUrls = { fotoKendaraan: null, fotoStnk: null };
+
+function resetFotoField(key, existingUrl = null) {
+  pendingFotoFiles[key] = null;
+  existingFotoUrls[key] = existingUrl || null;
+  const preview = document.getElementById(key + 'Preview');
+  const label = document.getElementById(key + 'Label');
+  const input = document.getElementById('f-' + (key === 'fotoKendaraan' ? 'foto-kendaraan' : 'foto-stnk'));
+  input.value = '';
+  if (existingUrl) {
+    preview.src = existingUrl;
+    preview.style.display = 'block';
+    label.innerHTML = '<strong>Ganti foto</strong><br>Klik untuk upload baru';
+  } else {
+    preview.style.display = 'none';
+    preview.src = '';
+    label.innerHTML = '<strong>Klik untuk upload</strong><br>JPG/PNG, max 3MB';
+  }
+}
+
+function previewFoto(input, key) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) {
+    toast('File terlalu besar', 'Maksimal 3MB', 'warning');
+    input.value = '';
+    return;
+  }
+  pendingFotoFiles[key] = file;
+  const preview = document.getElementById(key + 'Preview');
+  const label = document.getElementById(key + 'Label');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    label.innerHTML = `<strong>${file.name}</strong><br>Siap diupload`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function openLightbox(url) {
+  if (!url) return;
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightbox').classList.add('show');
+}
+
+function closeLightbox(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('lightbox').classList.remove('show');
+}
 
 async function saveVehicle() {
   const plate = document.getElementById('f-plate').value.trim().toUpperCase();
@@ -627,6 +773,24 @@ async function saveVehicle() {
   }
   const km = parseInt(document.getElementById('f-km').value) || 0;
   const kmServiceStart = parseInt(document.getElementById('f-km-service-start').value) || 0;
+
+  // Upload foto kalau ada file baru dipilih
+  let fotoKendaraanUrl = existingFotoUrls.fotoKendaraan;
+  let fotoStnkUrl = existingFotoUrls.fotoStnk;
+  try {
+    if (pendingFotoFiles.fotoKendaraan) {
+      toast('Mengupload foto...', 'Foto kendaraan', 'info');
+      fotoKendaraanUrl = await window.uploadFoto(pendingFotoFiles.fotoKendaraan, plate, 'kendaraan');
+    }
+    if (pendingFotoFiles.fotoStnk) {
+      toast('Mengupload foto...', 'Foto STNK', 'info');
+      fotoStnkUrl = await window.uploadFoto(pendingFotoFiles.fotoStnk, plate, 'stnk');
+    }
+  } catch (err) {
+    toast('Gagal upload foto', err.message, 'danger');
+    return;
+  }
+
   const data = {
     jenis: document.getElementById('f-jenis').value, type, plate,
     asal: document.getElementById('f-asal').value,
@@ -641,7 +805,9 @@ async function saveVehicle() {
     email: document.getElementById('f-email').value.trim(),
     notifTg: document.getElementById('f-notif-tg').checked,
     notifEmail: document.getElementById('f-notif-email').checked,
-    lastSent: null
+    lastSent: null,
+    fotoKendaraan: fotoKendaraanUrl,
+    fotoStnk: fotoStnkUrl,
   };
   try {
     const dbData = uiToDb(data);
@@ -744,6 +910,13 @@ async function openServiceModal(id) {
 
   // Isi info kendaraan
   document.getElementById('smVehicleInfo').textContent = `${v.plate} — ${v.type}`;
+
+  // Render foto kendaraan & STNK
+  const fotoRow = document.getElementById('smFotoRow');
+  const fotoBox = (url, label, emoji) => url
+    ? `<img src="${url}" onclick="openLightbox('${url}')" style="width:100%;height:110px;object-fit:cover;border-radius:10px;cursor:pointer;border:1px solid var(--border);" title="${label}">`
+    : `<div style="width:100%;height:110px;border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-mute);font-size:24px;">${emoji}</div>`;
+  fotoRow.innerHTML = fotoBox(v.fotoKendaraan, 'Foto Kendaraan', '🚗') + fotoBox(v.fotoStnk, 'Foto STNK', '📄');
 
   // KM status
   const KM_INTERVAL = window.getServiceInterval(v.jenis);
@@ -1011,6 +1184,9 @@ document.getElementById('modal').addEventListener('click', (e) => {
 });
 document.getElementById('notifModal').addEventListener('click', (e) => {
   if (e.target.id === 'notifModal') closeNotifModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeLightbox();
 });
 
 (async function init() {
