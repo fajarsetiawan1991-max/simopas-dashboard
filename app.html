@@ -503,7 +503,7 @@ table { min-width: 1100px; }
             <label>Foto Kendaraan</label>
             <div class="foto-upload-box" id="fotoKendaraanBox">
               <img class="foto-upload-preview" id="fotoKendaraanPreview">
-              <div class="foto-upload-label" id="fotoKendaraanLabel"><strong>Klik untuk upload</strong><br>JPG/PNG, max 3MB</div>
+              <div class="foto-upload-label" id="fotoKendaraanLabel"><strong>Klik untuk upload</strong><br>JPG/PNG, max 10MB</div>
               <input type="file" id="f-foto-kendaraan" accept="image/*" onchange="previewFoto(this, 'fotoKendaraan')">
             </div>
           </div>
@@ -511,7 +511,7 @@ table { min-width: 1100px; }
             <label>Foto STNK</label>
             <div class="foto-upload-box" id="fotoStnkBox">
               <img class="foto-upload-preview" id="fotoStnkPreview">
-              <div class="foto-upload-label" id="fotoStnkLabel"><strong>Klik untuk upload</strong><br>JPG/PNG, max 3MB</div>
+              <div class="foto-upload-label" id="fotoStnkLabel"><strong>Klik untuk upload</strong><br>JPG/PNG, max 10MB</div>
               <input type="file" id="f-foto-stnk" accept="image/*" onchange="previewFoto(this, 'fotoStnk')">
             </div>
           </div>
@@ -727,15 +727,15 @@ function resetFotoField(key, existingUrl = null) {
   } else {
     preview.style.display = 'none';
     preview.src = '';
-    label.innerHTML = '<strong>Klik untuk upload</strong><br>JPG/PNG, max 3MB';
+    label.innerHTML = '<strong>Klik untuk upload</strong><br>JPG/PNG, max 10MB';
   }
 }
 
 function previewFoto(input, key) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 3 * 1024 * 1024) {
-    toast('File terlalu besar', 'Maksimal 3MB', 'warning');
+  if (file.size > 10 * 1024 * 1024) {
+    toast('File terlalu besar', 'Maksimal 10MB', 'warning');
     input.value = '';
     return;
   }
