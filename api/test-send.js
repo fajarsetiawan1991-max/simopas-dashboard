@@ -14,7 +14,8 @@ const FROM_NAME = process.env.FROM_NAME || 'SIMOPAS Kanwil Ditjenim Kalteng';
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 const ORIGIN_LABELS = {
-  ditjenim: 'Ditjenim Pusat',
+  ditjenim: 'Sewa Sekjen',
+  sewa_kanwil_ditjenim: 'Sewa Kanwil Ditjenim Kalteng',
   kanwil_ditjenim: 'Kanwil Ditjenim Kalteng',
   kanim_sampit: 'Kanim Sampit',
   kanim_pky: 'Kanim Palangkaraya',
