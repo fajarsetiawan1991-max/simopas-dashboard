@@ -1,7 +1,8 @@
 // SIMOPAS Shared Helpers - v4
 
 window.ORIGIN_LABELS = {
-  ditjenim: 'Ditjenim Pusat',
+  ditjenim: 'Sewa Sekjen',
+  sewa_kanwil_ditjenim: 'Sewa Kanwil Ditjenim Kalteng',
   kanwil_ditjenim: 'Kanwil Ditjenim Kalteng',
   kanim_sampit: 'Kanim Sampit',
   kanim_pky: 'Kanim Palangkaraya',
